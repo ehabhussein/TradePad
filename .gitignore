@@ -1,0 +1,12 @@
+node_modules
+.next
+.env
+.env.local
+data/journal.db
+data/journal.db-*
+data/screenshots/*
+data/backups/*
+!data/screenshots/.gitkeep
+!data/backups/.gitkeep
+.DS_Store
+*.log

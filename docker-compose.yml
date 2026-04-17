@@ -1,0 +1,19 @@
+services:
+  tradepad:
+    build: .
+    container_name: tradepad
+    restart: unless-stopped
+    ports:
+      - "3330:3330"
+    volumes:
+      - ./data:/app/data
+    environment:
+      DATABASE_URL: /app/data/journal.db
+      SCREENSHOTS_DIR: /app/data/screenshots
+      API_KEY: ${API_KEY:-change-me}
+      NODE_ENV: production
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3330/api/stats?health=1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

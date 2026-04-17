@@ -28,23 +28,37 @@ Every trader says they "keep a journal." Most open a spreadsheet for a week and 
 - 🔒 **Yours, forever** — SQLite file in your folder, images in your folder, backups in your folder. No cloud. No login. No account.
 - 🎨 **Actually beautiful** — glassmorphism, Inter, gradient mesh, dark-mode first.
 
-## 📸 At a glance
+## 📸 Gallery
 
-```
-   ┌──────────────────────────────────────────────────────────┐
-   │ Welcome back, trader                                     │
-   │                                                          │
-   │ [+$847.12]  [62%]  [48 trades]  [🔥 3 win streak]        │
-   │                                                          │
-   │  🗓  P/L Calendar (26 weeks)                             │
-   │     ▓ ▒ ░ ░ ▓ ▓ ▓   ▒ ░ ░ ▓ ░ ░ ░   ▒ ▓ ▓ ▓ ░ ░ ▒ ▓ ░   │
-   │                                                          │
-   │  📈 Equity Curve ───────────     📜 Recent Days          │
-   │       ╭─╯                         Apr 15  ▲ +$93.35     │
-   │    ╭──╯                           Apr 14  ▼ −$14.17     │
-   │  ──╯                              Apr 12  ▲ +$5.80      │
-   └──────────────────────────────────────────────────────────┘
-```
+### Home — heatmap, equity curve, recent days
+![Home](docs/screenshots/01-home.png)
+
+### Analytics — the numbers that matter
+![Analytics](docs/screenshots/06-analytics.png)
+
+### Daily journal list — at-a-glance history
+![Days](docs/screenshots/02-days.png)
+
+### Day editor — notes, checklist, trades, screenshots
+![Day detail](docs/screenshots/03-day-detail.png)
+
+### Trades — sortable table with R-multiple and setup type
+![Trades](docs/screenshots/04-trades.png)
+
+### Trade editor — entry + review + screenshot drag-drop
+![Trade detail](docs/screenshots/05-trade-detail.png)
+
+### Mistakes — "Mistakes were made." Pattern cloud + repeat offenders
+![Mistakes](docs/screenshots/08-mistakes.png)
+
+### Lessons — searchable, tagged, severity-coded knowledge base
+![Lessons](docs/screenshots/07-lessons.png)
+
+### Rules — living rulebook organised by category
+![Rules](docs/screenshots/09-rules.png)
+
+### Checklist — pre-trade discipline scored automatically
+![Checklist](docs/screenshots/10-checklist.png)
 
 ## 🚀 Quick start
 

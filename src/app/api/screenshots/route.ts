@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { screenshots } from "@/lib/db/schema";
+import { screenshots, days } from "@/lib/db/schema";
 import { desc, eq, and } from "drizzle-orm";
 import { requireApiKey } from "@/lib/auth";
 import path from "node:path";
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
+
+function ensureDay(date?: string | null) {
+  if (!date) return;
+  const existing = db.select().from(days).where(eq(days.date, date)).get();
+  if (!existing) {
+    const now = new Date();
+    db.insert(days).values({ date, createdAt: now, updatedAt: now } as any).run();
+  }
+}
 
 const SCREENSHOTS_DIR = process.env.SCREENSHOTS_DIR || path.resolve(process.cwd(), "data/screenshots");
 await fs.mkdir(SCREENSHOTS_DIR, { recursive: true }).catch(() => {});
@@ -40,6 +49,7 @@ export async function POST(req: NextRequest) {
   const filename = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
   await fs.writeFile(path.join(SCREENSHOTS_DIR, filename), buf);
 
+  ensureDay(dayDate);
   const row = db.insert(screenshots).values({
     filename,
     originalName: file.name,

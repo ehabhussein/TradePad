@@ -242,6 +242,19 @@ function formatUsd(n: number | null | undefined) {
   return sign + "$" + n.toFixed(2);
 }
 
+/**
+ * Ensure a day row exists for the given YYYY-MM-DD.
+ * Called before inserting anything that FKs to days.date.
+ */
+function ensureDay(date: string | null | undefined) {
+  if (!date) return;
+  const existing = db.select().from(days).where(eq(days.date, date)).get();
+  if (!existing) {
+    const now = new Date();
+    db.insert(days).values({ date, createdAt: now, updatedAt: now } as any).run();
+  }
+}
+
 export async function callTool(name: string, args: Record<string, any> = {}) {
   switch (name) {
     // TRADES
@@ -253,6 +266,7 @@ export async function callTool(name: string, args: Record<string, any> = {}) {
         rMultiple = calcRMultiple(args.entryPrice, args.exitPrice, args.stopLoss, args.direction);
       }
       const dayDate = args.dayDate ?? openedAt.toISOString().slice(0, 10);
+      ensureDay(dayDate);
       const now = new Date();
       const { openedAt: _a, closedAt: _b, ...rest } = args;
       const row = db.insert(trades).values({
@@ -311,8 +325,10 @@ export async function callTool(name: string, args: Record<string, any> = {}) {
     }
 
     // MISTAKES
-    case "log_mistake":
+    case "log_mistake": {
+      ensureDay(args.dayDate);
       return textResult(db.insert(mistakes).values(args as any).returning().get());
+    }
     case "list_mistakes":
       return textResult(db.select().from(mistakes).orderBy(desc(mistakes.createdAt)).all());
 

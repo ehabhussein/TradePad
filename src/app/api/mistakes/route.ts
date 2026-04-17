@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { mistakes } from "@/lib/db/schema";
+import { mistakes, days } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { requireApiKey } from "@/lib/auth";
 import { z } from "zod";
@@ -12,6 +12,15 @@ const schema = z.object({
   notes: z.string().optional(),
 });
 
+function ensureDay(date?: string | null) {
+  if (!date) return;
+  const existing = db.select().from(days).where(eq(days.date, date)).get();
+  if (!existing) {
+    const now = new Date();
+    db.insert(days).values({ date, createdAt: now, updatedAt: now } as any).run();
+  }
+}
+
 export async function GET(req: NextRequest) {
   const auth = requireApiKey(req); if (auth) return auth;
   return NextResponse.json(db.select().from(mistakes).orderBy(desc(mistakes.createdAt)).all());
@@ -22,6 +31,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  ensureDay(parsed.data.dayDate);
   const row = db.insert(mistakes).values(parsed.data).returning().get();
   return NextResponse.json(row);
 }

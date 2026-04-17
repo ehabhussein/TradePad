@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { trades } from "@/lib/db/schema";
+import { trades, days } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireApiKey } from "@/lib/auth";
 import { calcRMultiple } from "@/lib/utils";
+
+function ensureDay(date: string) {
+  const existing = db.select().from(days).where(eq(days.date, date)).get();
+  if (!existing) {
+    const now = new Date();
+    db.insert(days).values({ date, createdAt: now, updatedAt: now } as any).run();
+  }
+}
 
 const tradeSchema = z.object({
   dayDate: z.string().optional(),
@@ -57,6 +65,7 @@ export async function POST(req: NextRequest) {
     rMultiple = calcRMultiple(d.entryPrice, d.exitPrice, d.stopLoss, d.direction);
   }
   const dayDate = d.dayDate ?? openedAt.toISOString().slice(0, 10);
+  ensureDay(dayDate);
   const now = new Date();
   const { openedAt: _oa, closedAt: _ca, ...rest } = d;
   const result = db.insert(trades).values({ ...rest, dayDate, openedAt, closedAt, rMultiple, createdAt: now, updatedAt: now }).returning().get();

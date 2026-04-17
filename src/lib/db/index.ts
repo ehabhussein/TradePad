@@ -29,17 +29,20 @@ if (fs.existsSync(migrationsFolder)) {
 const ruleCount = sqlite.prepare("SELECT COUNT(*) as c FROM rules").get() as { c: number } | undefined;
 if (ruleCount?.c === 0) {
   const insert = sqlite.prepare("INSERT INTO rules (text, category, order_num, active) VALUES (?, ?, ?, 1)");
+  // The Scalping Manifesto — 12 classic trader's discipline rules
   const defaultRules: Array<[string, string, number]> = [
-    ["Max $2 loss per trade on sub-$100 account", "risk", 1],
-    ["SL must be set on entry — never manage manually", "risk", 2],
-    ["Strictly follow Gold Winner v1 signal — no manual override", "entry", 3],
-    ["Never trade during 07:00-08:00 UTC London manipulation window", "timing", 4],
-    ["After 5 rejections of same level → STOP trading it", "entry", 5],
-    ["After 2 consecutive losses → pause 2 hours", "psychology", 6],
-    ["Never test order forms on real account — demo only", "risk", 7],
-    ["Close all positions/orders before Friday market close", "risk", 8],
-    ["Never use market orders during Fed/FOMC/Powell events", "timing", 9],
-    ["Scalp: close GOLD trades on FxPro as soon as they're in profit", "exit", 10],
+    ["Know where you will exit before you enter (Profit & Loss)", "entry", 1],
+    ["When you see profit, take it", "exit", 2],
+    ["Proper money management", "risk", 3],
+    ["Enter slowly", "entry", 4],
+    ["Don't overtrade", "psychology", 5],
+    ["Watch 70% / trade 30% — spend more time analyzing than trading", "psychology", 6],
+    ["Don't overtrade × 2 (seriously, don't)", "psychology", 7],
+    ["Don't revenge trade", "psychology", 8],
+    ["Be patient and sit on your hands", "psychology", 9],
+    ["Don't trade against the trend", "entry", 10],
+    ["Spend time preparing your entry setup", "entry", 11],
+    ["Do not touch your stoploss once set", "risk", 12],
   ];
   const tx = sqlite.transaction(() => defaultRules.forEach((r) => insert.run(...r)));
   tx();

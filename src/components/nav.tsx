@@ -33,13 +33,20 @@ export function Nav() {
   const [open, setOpen] = useState(false);
   const isActive = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
 
-  // Close drawer on route change
+  // Close on route change
   useEffect(() => { setOpen(false); }, [path]);
 
-  // Lock scroll when drawer open
+  // Close on outside click (but drawer does NOT block interaction)
   useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest("[data-drawer-root]") || target.closest("[data-drawer-trigger]")) return;
+      setOpen(false);
+    };
+    // delay listener so the opening click doesn't immediately close it
+    const t = setTimeout(() => document.addEventListener("mousedown", onClick), 50);
+    return () => { clearTimeout(t); document.removeEventListener("mousedown", onClick); };
   }, [open]);
 
   // ESC closes
@@ -58,11 +65,12 @@ export function Nav() {
         <div className="container max-w-7xl flex h-16 items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setOpen(true)}
+              data-drawer-trigger
+              onClick={() => setOpen((o) => !o)}
               className="size-10 inline-flex items-center justify-center rounded-lg border bg-background/50 hover:bg-muted transition-all hover:scale-105 active:scale-95"
-              aria-label="Open menu"
+              aria-label={open ? "Close menu" : "Open menu"}
             >
-              <Menu className="size-5" />
+              {open ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
             <Link href="/" className="flex items-center gap-2 font-bold text-lg">
               <div className="size-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center glow-primary">
@@ -92,77 +100,42 @@ export function Nav() {
         </div>
       </header>
 
-      {/* Drawer */}
+      {/* Drawer — non-blocking. No backdrop. Rest of the app stays interactive. */}
       <AnimatePresence>
         {open && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              key="backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => setOpen(false)}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-            />
-
-            {/* Drawer panel */}
-            <motion.aside
-              key="drawer"
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 260 }}
-              className="fixed top-0 left-0 z-50 h-full w-[88vw] max-w-sm bg-card border-r border-border/60 shadow-2xl overflow-y-auto scrollbar-thin"
-            >
-              <div className="gradient-mesh min-h-full p-6 space-y-8">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <Link href="/" className="flex items-center gap-3">
-                    <div className="size-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center glow-primary">
-                      <Sparkles className="size-5 text-primary-foreground" />
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold">Tradepad</div>
-                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Trading Journal</div>
-                    </div>
-                  </Link>
-                  <button
-                    onClick={() => setOpen(false)}
-                    className="size-9 inline-flex items-center justify-center rounded-lg border bg-background/50 hover:bg-muted transition-all hover:rotate-90"
-                    aria-label="Close menu"
-                  >
-                    <X className="size-4" />
-                  </button>
-                </div>
-
-                {/* Primary */}
+          <motion.aside
+            data-drawer-root
+            key="drawer"
+            initial={{ x: "-105%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "-105%", opacity: 0 }}
+            transition={{ type: "spring", damping: 28, stiffness: 260 }}
+            className="fixed top-20 left-4 z-40 h-[calc(100vh-6rem)] w-[88vw] max-w-xs bg-card/95 backdrop-blur-xl border border-border/60 shadow-2xl rounded-2xl overflow-y-auto scrollbar-thin"
+          >
+              <div className="p-5 space-y-6">
                 <section className="space-y-2">
                   <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground px-2">Journal</p>
                   <div className="space-y-1">
                     {primary.map((link, i) => (
-                      <DrawerLink key={link.href} link={link} active={isActive(link.href)} index={i} />
+                      <DrawerLink key={link.href} link={link} active={isActive(link.href)} index={i} onNavigate={() => setOpen(false)} />
                     ))}
                   </div>
                 </section>
 
-                {/* Secondary */}
                 <section className="space-y-2">
                   <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground px-2">Knowledge & Tools</p>
                   <div className="space-y-1">
                     {secondary.map((link, i) => (
-                      <DrawerLink key={link.href} link={link} active={isActive(link.href)} index={primary.length + i} />
+                      <DrawerLink key={link.href} link={link} active={isActive(link.href)} index={primary.length + i} onNavigate={() => setOpen(false)} />
                     ))}
                   </div>
                 </section>
 
-                {/* Footer tip */}
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.35 }}
-                  className="mt-auto pt-6 border-t border-border/40"
+                  className="pt-4 border-t border-border/40"
                 >
                   <button
                     onClick={() => { setOpen(false); document.dispatchEvent(new CustomEvent("tradepad:open-palette")); }}
@@ -174,8 +147,7 @@ export function Nav() {
                   </button>
                 </motion.div>
               </div>
-            </motion.aside>
-          </>
+          </motion.aside>
         )}
       </AnimatePresence>
     </>
@@ -184,7 +156,7 @@ export function Nav() {
 
 type LinkItem = { href: string; label: string; icon: any; tint: string };
 
-function DrawerLink({ link, active, index }: { link: LinkItem; active: boolean; index: number }) {
+function DrawerLink({ link, active, index, onNavigate }: { link: LinkItem; active: boolean; index: number; onNavigate: () => void }) {
   const Icon = link.icon;
   return (
     <motion.div
@@ -194,6 +166,7 @@ function DrawerLink({ link, active, index }: { link: LinkItem; active: boolean; 
     >
       <Link
         href={link.href}
+        onClick={onNavigate}
         className={cn(
           "group flex items-center gap-3 p-3 rounded-xl transition-all relative overflow-hidden",
           active
@@ -211,13 +184,7 @@ function DrawerLink({ link, active, index }: { link: LinkItem; active: boolean; 
           <Icon className="size-4" />
         </div>
         <span className="text-sm font-medium">{link.label}</span>
-        {active && (
-          <motion.span
-            layoutId="active-pill"
-            className="ml-auto size-1.5 rounded-full bg-primary"
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          />
-        )}
+        {active && <span className="ml-auto size-1.5 rounded-full bg-primary" />}
       </Link>
     </motion.div>
   );

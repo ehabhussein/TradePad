@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Nav } from "@/components/nav";
 import { Toaster } from "sonner";
 import { CommandPalette } from "@/components/command-palette";
+import { ObservationsDock } from "@/components/observations-dock";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
@@ -21,7 +22,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${sans.variable} ${mono.variable} font-sans min-h-screen gradient-mesh`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <Nav />
-          <main className="container max-w-7xl py-8 animate-fade-in">{children}</main>
+          <main className="container max-w-7xl py-8 animate-fade-in lg:pr-80">{children}</main>
+          <ObservationsDock />
           <CommandPalette />
           <Toaster theme="dark" position="bottom-right" richColors />
         </ThemeProvider>

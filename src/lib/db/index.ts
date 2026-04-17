@@ -48,6 +48,56 @@ if (ruleCount?.c === 0) {
   tx();
 }
 
+// Ensure code_snippets table exists
+sqlite.exec(`CREATE TABLE IF NOT EXISTS code_snippets (
+  id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  name text NOT NULL,
+  description text,
+  code text NOT NULL,
+  language text NOT NULL,
+  kind text,
+  platform text,
+  pine_version text,
+  symbol text,
+  timeframe text,
+  tags text,
+  source text,
+  active integer DEFAULT 1 NOT NULL,
+  created_at integer DEFAULT (unixepoch()) NOT NULL,
+  updated_at integer DEFAULT (unixepoch()) NOT NULL
+)`);
+
+// Seed an example if empty
+const codeCount = sqlite.prepare("SELECT COUNT(*) as c FROM code_snippets").get() as { c: number } | undefined;
+if (codeCount?.c === 0) {
+  const insertCode = sqlite.prepare(`INSERT INTO code_snippets
+    (name, description, code, language, kind, platform, pine_version, symbol, timeframe, tags, source, active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`);
+
+  const helloPine = `//@version=6
+indicator("Tradepad Example — RSI Bounce", overlay=false)
+
+// A minimal example: plot RSI with overbought/oversold bands.
+// Paste your own Pine / MQL / Python scripts here.
+
+rsiLen = input.int(14, "RSI Length")
+rsi = ta.rsi(close, rsiLen)
+
+plot(rsi, "RSI", color=color.teal, linewidth=2)
+hline(30, "Oversold", color=color.new(color.green, 50))
+hline(70, "Overbought", color=color.new(color.red, 50))
+
+bgcolor(rsi < 30 ? color.new(color.green, 85) : rsi > 70 ? color.new(color.red, 85) : na)`;
+
+  insertCode.run(
+    "Example — RSI Bounce",
+    "A tiny Pine v6 indicator. Delete me and paste your own library.",
+    helloPine,
+    "pine", "indicator", "TradingView", "v6", "XAUUSD", "1H",
+    "example,pine,rsi", ""
+  );
+}
+
 // Ensure setups table exists (for DBs created before this feature)
 sqlite.exec(`CREATE TABLE IF NOT EXISTS setups (
   id integer PRIMARY KEY AUTOINCREMENT NOT NULL,

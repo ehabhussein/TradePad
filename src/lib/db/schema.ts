@@ -135,6 +135,25 @@ export const setups = sqliteTable("setups", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
 });
 
+// Code library — Pine, MQL4, MQL5, Python, JS, anything trade-adjacent
+export const codeSnippets = sqliteTable("code_snippets", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  description: text("description"),
+  code: text("code").notNull(),
+  language: text("language").notNull(), // pine / mql4 / mql5 / python / javascript / typescript / json / other
+  kind: text("kind"), // indicator / strategy / EA / utility / library / webhook
+  platform: text("platform"), // TradingView / MT4 / MT5 / NinjaTrader / custom
+  pineVersion: text("pine_version"), // v5 / v6 (when language=pine)
+  symbol: text("symbol"),
+  timeframe: text("timeframe"),
+  tags: text("tags"),
+  source: text("source"),
+  active: integer("active", { mode: "boolean" }).default(true).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
+});
+
 // Goals — account size targets, R-target, etc.
 export const goals = sqliteTable("goals", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -160,3 +179,5 @@ export type AccountSnapshot = typeof accountSnapshots.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
 export type Setup = typeof setups.$inferSelect;
 export type NewSetup = typeof setups.$inferInsert;
+export type CodeSnippet = typeof codeSnippets.$inferSelect;
+export type NewCodeSnippet = typeof codeSnippets.$inferInsert;

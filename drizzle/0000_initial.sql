@@ -109,6 +109,24 @@ CREATE TABLE `account_snapshots` (
   `created_at` integer DEFAULT (unixepoch()) NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `code_snippets` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `name` text NOT NULL,
+  `description` text,
+  `code` text NOT NULL,
+  `language` text NOT NULL,
+  `kind` text,
+  `platform` text,
+  `pine_version` text,
+  `symbol` text,
+  `timeframe` text,
+  `tags` text,
+  `source` text,
+  `active` integer DEFAULT 1 NOT NULL,
+  `created_at` integer DEFAULT (unixepoch()) NOT NULL,
+  `updated_at` integer DEFAULT (unixepoch()) NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE `setups` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `name` text NOT NULL,

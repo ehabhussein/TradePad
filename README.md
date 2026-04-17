@@ -48,8 +48,14 @@ Every trader says they "keep a journal." Most open a spreadsheet for a week and 
 ### Trade editor — entry + review + screenshot drag-drop
 ![Trade detail](docs/screenshots/05-trade-detail.png)
 
+### Drawer menu — slides in from the left with gradient icon tiles
+![Drawer](docs/screenshots/13-drawer.png)
+
 ### Setups — your playbook, card-based, click to edit
 ![Setups](docs/screenshots/11-setups.png)
+
+### Code Library — Pine, MQL4/5, Python, webhooks, anything
+![Code](docs/screenshots/12-code.png)
 
 ### Mistakes — "Mistakes were made." Pattern cloud + repeat offenders
 ![Mistakes](docs/screenshots/08-mistakes.png)
@@ -95,6 +101,7 @@ Data lives in `./data/` — SQLite DB, screenshots, and backups all mount as a b
 
 ### Knowledge base
 - 🎯 **Trade Setups** — reusable strategy templates with structured entry/exit conditions, SL/TP rules, invalidation, confluences. Card-based UI, click any to edit.
+- 💻 **Code Library** — Pine Script, MQL4, MQL5, Python, JavaScript, webhook JSON. Paste your whole trading toolbox. Copy-to-clipboard on every snippet.
 - 📚 **Lessons library** — searchable, tagged, severity-coded
 - 💀 **Mistakes page** — tag cloud, frequency bars, monthly trend, repeat-offender tracker
 - 📜 **Rules book** organised by category (risk / entry / exit / timing / psychology)
@@ -138,6 +145,7 @@ Restart Claude Code → tools appear as `mcp__tradepad__*`.
 | `upsert_day` | Create or update a daily journal entry |
 | `get_day` / `list_days` | Read day entries |
 | `add_setup` / `update_setup` / `list_setups` / `get_setup` / `delete_setup` | Full CRUD on trade setups |
+| `add_code` / `update_code` / `list_code` / `get_code` / `delete_code` | Full CRUD on the code library (Pine, MQL, Python, JSON…) |
 | `add_lesson` / `search_lessons` | Grow the knowledge base |
 | `log_mistake` / `list_mistakes` | Track categorized mistakes |
 | `add_rule` / `list_rules` | Manage the rulebook |

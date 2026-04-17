@@ -3,7 +3,7 @@
  * Each handler uses the db directly — no HTTP round trip.
  */
 import { db } from "@/lib/db";
-import { trades, days, lessons, rules, checklistItems, mistakes, accountSnapshots, goals, screenshots, setups } from "@/lib/db/schema";
+import { trades, days, lessons, rules, checklistItems, mistakes, accountSnapshots, goals, screenshots, setups, codeSnippets } from "@/lib/db/schema";
 import { desc, asc, eq, like, or } from "drizzle-orm";
 import { calcRMultiple } from "@/lib/utils";
 
@@ -266,6 +266,60 @@ export const TOOL_DEFINITIONS = [
     description: "Delete a setup by id",
     inputSchema: { type: "object", properties: { id: { type: "number" } }, required: ["id"] },
   },
+  // ── CODE LIBRARY ──────────────────────────────────────
+  {
+    name: "add_code",
+    description: "Save a code snippet (Pine / MQL4 / MQL5 / Python / JavaScript / JSON / anything). Use for your Pine Script library, MT4/5 Experts, webhook JSON templates, automation scripts.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        description: { type: "string" },
+        code: { type: "string", description: "The full source code. Preserve newlines." },
+        language: { type: "string", description: "pine / mql4 / mql5 / python / javascript / typescript / json / bash / other" },
+        kind: { type: "string", description: "indicator / strategy / EA / utility / library / webhook" },
+        platform: { type: "string", description: "TradingView / MT4 / MT5 / NinjaTrader / custom" },
+        pineVersion: { type: "string", description: "v5 / v6 — when language=pine" },
+        symbol: { type: "string" },
+        timeframe: { type: "string" },
+        tags: { type: "string", description: "comma-separated" },
+        source: { type: "string", description: "Original URL or author credit" },
+        active: { type: "boolean" },
+      },
+      required: ["name", "code", "language"],
+    },
+  },
+  {
+    name: "update_code",
+    description: "Update a code snippet by id",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "number" }, patch: { type: "object" } },
+      required: ["id", "patch"],
+    },
+  },
+  {
+    name: "list_code",
+    description: "List code snippets. Optional search (q) and language filter.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        q: { type: "string" },
+        language: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "get_code",
+    description: "Fetch a single code snippet by id (returns full code)",
+    inputSchema: { type: "object", properties: { id: { type: "number" } }, required: ["id"] },
+  },
+  {
+    name: "delete_code",
+    description: "Delete a code snippet by id",
+    inputSchema: { type: "object", properties: { id: { type: "number" } }, required: ["id"] },
+  },
+
   // ── STATS / SUMMARIES ─────────────────────────────────
   {
     name: "stats",
@@ -430,6 +484,37 @@ export async function callTool(name: string, args: Record<string, any> = {}) {
       return textResult(db.select().from(setups).where(eq(setups.id, args.id)).get() ?? null);
     case "delete_setup":
       db.delete(setups).where(eq(setups.id, args.id)).run();
+      return textResult({ ok: true });
+
+    // CODE LIBRARY
+    case "add_code": {
+      const now = new Date();
+      const row = db.insert(codeSnippets).values({ ...(args as any), createdAt: now, updatedAt: now } as any).returning().get();
+      return textResult(row);
+    }
+    case "update_code":
+      db.update(codeSnippets).set({ ...(args as any).patch, updatedAt: new Date() }).where(eq(codeSnippets.id, args.id)).run();
+      return textResult(db.select().from(codeSnippets).where(eq(codeSnippets.id, args.id)).get());
+    case "list_code": {
+      let rows;
+      if (args.q) {
+        rows = db.select().from(codeSnippets).where(or(
+          like(codeSnippets.name, `%${args.q}%`),
+          like(codeSnippets.description, `%${args.q}%`),
+          like(codeSnippets.tags, `%${args.q}%`),
+          like(codeSnippets.code, `%${args.q}%`)
+        )).all();
+      } else if (args.language) {
+        rows = db.select().from(codeSnippets).where(eq(codeSnippets.language, args.language)).all();
+      } else {
+        rows = db.select().from(codeSnippets).orderBy(desc(codeSnippets.updatedAt)).all();
+      }
+      return textResult(rows);
+    }
+    case "get_code":
+      return textResult(db.select().from(codeSnippets).where(eq(codeSnippets.id, args.id)).get() ?? null);
+    case "delete_code":
+      db.delete(codeSnippets).where(eq(codeSnippets.id, args.id)).run();
       return textResult({ ok: true });
 
     // STATS / SUMMARY

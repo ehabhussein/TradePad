@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { BookOpen, Calendar, BarChart3, LineChart, ListChecks, Shield, Skull, Plus, Home, Camera, Target } from "lucide-react";
+import { BookOpen, Calendar, BarChart3, LineChart, ListChecks, Shield, Skull, Plus, Home, Camera, Target, Code2 } from "lucide-react";
 import { todayISO } from "@/lib/utils";
 
 export function CommandPalette() {
@@ -59,6 +59,7 @@ export function CommandPalette() {
               <CommandItem onSelect={() => go("/trades")}><LineChart className="size-4" /> All trades</CommandItem>
               <CommandItem onSelect={() => go("/analytics")}><BarChart3 className="size-4" /> Analytics</CommandItem>
               <CommandItem onSelect={() => go("/setups")}><Target className="size-4" /> Setups</CommandItem>
+              <CommandItem onSelect={() => go("/code")}><Code2 className="size-4" /> Code Library</CommandItem>
               <CommandItem onSelect={() => go("/lessons")}><BookOpen className="size-4" /> Lessons</CommandItem>
               <CommandItem onSelect={() => go("/mistakes")}><Skull className="size-4" /> Mistakes</CommandItem>
               <CommandItem onSelect={() => go("/rules")}><Shield className="size-4" /> Rules</CommandItem>

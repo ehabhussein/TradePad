@@ -48,6 +48,32 @@ if (ruleCount?.c === 0) {
   tx();
 }
 
+// Ensure observations table exists
+sqlite.exec(`CREATE TABLE IF NOT EXISTS observations (
+  id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  symbol text,
+  observed_at integer NOT NULL,
+  timeframe text,
+  session text,
+  hour_utc integer,
+  weekday_utc integer,
+  title text NOT NULL,
+  body text,
+  category text,
+  price_at real,
+  tags text,
+  related_trade_id integer,
+  screenshot_id integer,
+  importance integer DEFAULT 3,
+  outcome text DEFAULT 'pending',
+  outcome_notes text,
+  created_at integer DEFAULT (unixepoch()) NOT NULL,
+  updated_at integer DEFAULT (unixepoch()) NOT NULL
+)`);
+// Migrate existing installations: add outcome columns if missing
+try { sqlite.exec("ALTER TABLE observations ADD COLUMN outcome text DEFAULT 'pending'"); } catch {}
+try { sqlite.exec("ALTER TABLE observations ADD COLUMN outcome_notes text"); } catch {}
+
 // Ensure code_snippets table exists
 sqlite.exec(`CREATE TABLE IF NOT EXISTS code_snippets (
   id integer PRIMARY KEY AUTOINCREMENT NOT NULL,

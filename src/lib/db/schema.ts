@@ -135,6 +135,31 @@ export const setups = sqliteTable("setups", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
 });
 
+// Observations — market-behavior diary (what you noticed, when, why it matters)
+export const observations = sqliteTable("observations", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  symbol: text("symbol"), // e.g. XAUUSD
+  observedAt: integer("observed_at", { mode: "timestamp" }).notNull(), // actual event time
+  timeframe: text("timeframe"),
+  session: text("session"), // Asian / London / Overlap / NY
+  hourUtc: integer("hour_utc"), // denormalized for fast hour-of-day aggregation
+  weekdayUtc: integer("weekday_utc"), // 0-6 (Sun=0)
+  title: text("title").notNull(),
+  body: text("body"),
+  category: text("category"), // spike / sweep / rejection / regime-change / news-reaction / session-open / anomaly / level-reaction
+  priceAt: real("price_at"),
+  tags: text("tags"),
+  relatedTradeId: integer("related_trade_id"),
+  screenshotId: integer("screenshot_id"),
+  importance: integer("importance").default(3), // 1-5
+  // Outcome — did what you predicted/expected actually happen?
+  // "happened" / "didnt_happen" / "partial" / "pending"
+  outcome: text("outcome").default("pending"),
+  outcomeNotes: text("outcome_notes"),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
+});
+
 // Code library — Pine, MQL4, MQL5, Python, JS, anything trade-adjacent
 export const codeSnippets = sqliteTable("code_snippets", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -181,3 +206,5 @@ export type Setup = typeof setups.$inferSelect;
 export type NewSetup = typeof setups.$inferInsert;
 export type CodeSnippet = typeof codeSnippets.$inferSelect;
 export type NewCodeSnippet = typeof codeSnippets.$inferInsert;
+export type Observation = typeof observations.$inferSelect;
+export type NewObservation = typeof observations.$inferInsert;

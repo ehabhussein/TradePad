@@ -3,8 +3,8 @@
  * Each handler uses the db directly — no HTTP round trip.
  */
 import { db } from "@/lib/db";
-import { trades, days, lessons, rules, checklistItems, mistakes, accountSnapshots, goals, screenshots, setups, codeSnippets } from "@/lib/db/schema";
-import { desc, asc, eq, like, or } from "drizzle-orm";
+import { trades, days, lessons, rules, checklistItems, mistakes, accountSnapshots, goals, screenshots, setups, codeSnippets, observations } from "@/lib/db/schema";
+import { desc, asc, eq, like, or, and } from "drizzle-orm";
 import { calcRMultiple } from "@/lib/utils";
 
 export const TOOL_DEFINITIONS = [
@@ -266,6 +266,58 @@ export const TOOL_DEFINITIONS = [
     description: "Delete a setup by id",
     inputSchema: { type: "object", properties: { id: { type: "number" } }, required: ["id"] },
   },
+  // ── OBSERVATIONS ──────────────────────────────────────
+  {
+    name: "add_observation",
+    description: "Log a market-behavior observation (e.g., 'candle shot high around 12:00 UTC'). Tracks hour-of-day and weekday automatically for pattern surfacing.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        symbol: { type: "string", description: "e.g. XAUUSD" },
+        observedAt: { type: "string", description: "ISO 8601 datetime when the event happened" },
+        timeframe: { type: "string" },
+        session: { type: "string", description: "Asian / London / Overlap / NY" },
+        title: { type: "string", description: "Short headline, e.g. '12:00 UTC candle spike'" },
+        body: { type: "string", description: "Details of what you noticed and why it matters" },
+        category: { type: "string", description: "spike / sweep / rejection / regime-change / news-reaction / session-open / anomaly / level-reaction" },
+        priceAt: { type: "number", description: "Price at the moment of observation" },
+        tags: { type: "string", description: "comma-separated" },
+        relatedTradeId: { type: "number" },
+        importance: { type: "number", description: "1-5" },
+      },
+      required: ["title", "observedAt"],
+    },
+  },
+  {
+    name: "list_observations",
+    description: "List observations. Optional filters: q (search), symbol, category, hour (0-23 UTC), weekday (0-6, Sun=0)",
+    inputSchema: {
+      type: "object",
+      properties: {
+        q: { type: "string" },
+        symbol: { type: "string" },
+        category: { type: "string" },
+        hour: { type: "number" },
+        weekday: { type: "number" },
+      },
+    },
+  },
+  {
+    name: "get_observation",
+    description: "Fetch a single observation",
+    inputSchema: { type: "object", properties: { id: { type: "number" } }, required: ["id"] },
+  },
+  {
+    name: "update_observation",
+    description: "Update an observation by id",
+    inputSchema: { type: "object", properties: { id: { type: "number" }, patch: { type: "object" } }, required: ["id", "patch"] },
+  },
+  {
+    name: "delete_observation",
+    description: "Delete an observation by id",
+    inputSchema: { type: "object", properties: { id: { type: "number" } }, required: ["id"] },
+  },
+
   // ── CODE LIBRARY ──────────────────────────────────────
   {
     name: "add_code",
@@ -484,6 +536,50 @@ export async function callTool(name: string, args: Record<string, any> = {}) {
       return textResult(db.select().from(setups).where(eq(setups.id, args.id)).get() ?? null);
     case "delete_setup":
       db.delete(setups).where(eq(setups.id, args.id)).run();
+      return textResult({ ok: true });
+
+    // OBSERVATIONS
+    case "add_observation": {
+      const obsAt = new Date(args.observedAt);
+      const now = new Date();
+      const { observedAt: _oa, ...rest } = args;
+      const row = db.insert(observations).values({
+        ...rest,
+        observedAt: obsAt,
+        hourUtc: obsAt.getUTCHours(),
+        weekdayUtc: obsAt.getUTCDay(),
+        createdAt: now,
+        updatedAt: now,
+      } as any).returning().get();
+      return textResult(row);
+    }
+    case "list_observations": {
+      const where: any[] = [];
+      if (args.symbol) where.push(eq(observations.symbol, args.symbol));
+      if (args.category) where.push(eq(observations.category, args.category));
+      if (args.hour != null) where.push(eq(observations.hourUtc, args.hour));
+      if (args.weekday != null) where.push(eq(observations.weekdayUtc, args.weekday));
+      if (args.q) where.push(or(like(observations.title, `%${args.q}%`), like(observations.body, `%${args.q}%`), like(observations.tags, `%${args.q}%`)));
+      const rows = where.length
+        ? db.select().from(observations).where(and(...where)).orderBy(desc(observations.observedAt)).all()
+        : db.select().from(observations).orderBy(desc(observations.observedAt)).limit(500).all();
+      return textResult(rows);
+    }
+    case "get_observation":
+      return textResult(db.select().from(observations).where(eq(observations.id, args.id)).get() ?? null);
+    case "update_observation": {
+      const patch: any = { ...args.patch, updatedAt: new Date() };
+      if (args.patch?.observedAt) {
+        const d = new Date(args.patch.observedAt);
+        patch.observedAt = d;
+        patch.hourUtc = d.getUTCHours();
+        patch.weekdayUtc = d.getUTCDay();
+      }
+      db.update(observations).set(patch).where(eq(observations.id, args.id)).run();
+      return textResult(db.select().from(observations).where(eq(observations.id, args.id)).get());
+    }
+    case "delete_observation":
+      db.delete(observations).where(eq(observations.id, args.id)).run();
       return textResult({ ok: true });
 
     // CODE LIBRARY

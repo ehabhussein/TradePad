@@ -14,6 +14,7 @@ import { cn, formatUsd, pnlColor } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDropzone } from "react-dropzone";
+import { PasteImage } from "@/components/paste-image";
 
 export function TradeEditor({ trade, screenshots = [] }: { trade?: Trade; screenshots?: Screenshot[] }) {
   const router = useRouter();
@@ -92,6 +93,7 @@ export function TradeEditor({ trade, screenshots = [] }: { trade?: Trade; screen
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
+      {trade && <PasteImage tradeId={trade.id} onUploaded={() => router.refresh()} />}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild>
@@ -209,7 +211,7 @@ export function TradeEditor({ trade, screenshots = [] }: { trade?: Trade; screen
             <div {...upload.getRootProps()} className={cn("border-2 border-dashed rounded-lg p-6 text-center transition cursor-pointer", upload.isDragActive ? "border-primary bg-primary/5" : "border-border hover:bg-muted")}>
               <input {...upload.getInputProps()} />
               <Upload className="size-6 mx-auto mb-1 text-muted-foreground" />
-              <p className="text-sm">Drag & drop chart snapshots</p>
+              <p className="text-sm">Drag & drop chart snapshots — or just <kbd className="px-1.5 py-0.5 rounded border text-[10px]">Ctrl+V</kbd> to paste from clipboard</p>
             </div>
             {screenshots.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

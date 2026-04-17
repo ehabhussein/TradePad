@@ -14,6 +14,7 @@ import { Camera, Check, ChevronLeft, Save, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDropzone } from "react-dropzone";
+import { PasteImage } from "@/components/paste-image";
 
 type Props = {
   date: string;
@@ -85,6 +86,7 @@ export function DayEditor({ date, day, trades, screenshots, checklistItems }: Pr
 
   return (
     <div className="space-y-6">
+      <PasteImage dayDate={date} onUploaded={() => router.refresh()} />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild>
@@ -220,7 +222,7 @@ export function DayEditor({ date, day, trades, screenshots, checklistItems }: Pr
           <div {...upload.getRootProps()} className={cn("border-2 border-dashed rounded-lg p-8 text-center transition cursor-pointer", upload.isDragActive ? "border-primary bg-primary/5" : "border-border hover:bg-muted")}>
             <input {...upload.getInputProps()} />
             <Upload className="size-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm">Drag & drop screenshots here, or click to select</p>
+            <p className="text-sm">Drag & drop screenshots, click to select, or <kbd className="px-1.5 py-0.5 rounded border text-[10px]">Ctrl+V</kbd> to paste from clipboard</p>
             <p className="text-xs text-muted-foreground mt-1">Chart snapshots, FxPro positions, TV alerts — anything visual</p>
           </div>
 

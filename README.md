@@ -48,6 +48,9 @@ Every trader says they "keep a journal." Most open a spreadsheet for a week and 
 ### Trade editor — entry + review + screenshot drag-drop
 ![Trade detail](docs/screenshots/05-trade-detail.png)
 
+### Observations — spot patterns by hour, weekday, category
+![Observations](docs/screenshots/15-observations.png)
+
 ### Drawer menu — slides in from the left with gradient icon tiles
 ![Drawer](docs/screenshots/13-drawer.png)
 
@@ -100,6 +103,7 @@ Data lives in `./data/` — SQLite DB, screenshots, and backups all mount as a b
 - **Drawdown chart**
 
 ### Knowledge base
+- 👁 **Observations** — market-behavior diary. Log "candle shot high at 12 UTC" with category, outcome (happened / didn't / partial), hour/weekday auto-extracted. Hour-of-day heatmap + weekday dock surface repeating patterns.
 - 🎯 **Trade Setups** — reusable strategy templates with structured entry/exit conditions, SL/TP rules, invalidation, confluences. Card-based UI, click any to edit.
 - 💻 **Code Library** — Pine Script, MQL4, MQL5, Python, JavaScript, webhook JSON. Paste your whole trading toolbox. Copy-to-clipboard on every snippet.
 - 📚 **Lessons library** — searchable, tagged, severity-coded
@@ -146,6 +150,7 @@ Restart Claude Code → tools appear as `mcp__tradepad__*`.
 | `get_day` / `list_days` | Read day entries |
 | `add_setup` / `update_setup` / `list_setups` / `get_setup` / `delete_setup` | Full CRUD on trade setups |
 | `add_code` / `update_code` / `list_code` / `get_code` / `delete_code` | Full CRUD on the code library (Pine, MQL, Python, JSON…) |
+| `add_observation` / `update_observation` / `list_observations` / `get_observation` / `delete_observation` | Log what you noticed and whether it happened. Filters by hour, weekday, category. |
 | `add_lesson` / `search_lessons` | Grow the knowledge base |
 | `log_mistake` / `list_mistakes` | Track categorized mistakes |
 | `add_rule` / `list_rules` | Manage the rulebook |

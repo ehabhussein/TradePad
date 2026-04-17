@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, BookOpen, Calendar, Home, LineChart, ListChecks, Plus, Search, Shield, Skull, Sparkles } from "lucide-react";
+import { BarChart3, BookOpen, Calendar, Home, LineChart, ListChecks, Plus, Search, Shield, Skull, Sparkles, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ const links = [
   { href: "/days", label: "Days", icon: Calendar },
   { href: "/trades", label: "Trades", icon: LineChart },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/setups", label: "Setups", icon: Target },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/mistakes", label: "Mistakes", icon: Skull },
   { href: "/rules", label: "Rules", icon: Shield },

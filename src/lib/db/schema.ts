@@ -114,6 +114,27 @@ export const accountSnapshots = sqliteTable("account_snapshots", {
   createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
 });
 
+// Trade setups — reusable strategy templates
+export const setups = sqliteTable("setups", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  description: text("description"),
+  direction: text("direction").notNull(), // BUY / SELL / BOTH
+  category: text("category"), // breakout / reversal / trend / mean-reversion / ICT / scalp / swing
+  timeframe: text("timeframe"),
+  bestSession: text("best_session"),
+  entryConditionsJson: text("entry_conditions_json"),
+  exitConditionsJson: text("exit_conditions_json"),
+  slRule: text("sl_rule"),
+  tpRule: text("tp_rule"),
+  invalidationRule: text("invalidation_rule"),
+  confluenceNotes: text("confluence_notes"),
+  tags: text("tags"),
+  active: integer("active", { mode: "boolean" }).default(true).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
+});
+
 // Goals — account size targets, R-target, etc.
 export const goals = sqliteTable("goals", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -137,3 +158,5 @@ export type ChecklistItem = typeof checklistItems.$inferSelect;
 export type Mistake = typeof mistakes.$inferSelect;
 export type AccountSnapshot = typeof accountSnapshots.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
+export type Setup = typeof setups.$inferSelect;
+export type NewSetup = typeof setups.$inferInsert;

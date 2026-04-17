@@ -109,6 +109,26 @@ CREATE TABLE `account_snapshots` (
   `created_at` integer DEFAULT (unixepoch()) NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `setups` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `name` text NOT NULL,
+  `description` text,
+  `direction` text NOT NULL,
+  `category` text,
+  `timeframe` text,
+  `best_session` text,
+  `entry_conditions_json` text,
+  `exit_conditions_json` text,
+  `sl_rule` text,
+  `tp_rule` text,
+  `invalidation_rule` text,
+  `confluence_notes` text,
+  `tags` text,
+  `active` integer DEFAULT 1 NOT NULL,
+  `created_at` integer DEFAULT (unixepoch()) NOT NULL,
+  `updated_at` integer DEFAULT (unixepoch()) NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE `goals` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `title` text NOT NULL,

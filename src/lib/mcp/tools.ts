@@ -3,7 +3,7 @@
  * Each handler uses the db directly — no HTTP round trip.
  */
 import { db } from "@/lib/db";
-import { trades, days, lessons, rules, checklistItems, mistakes, accountSnapshots, goals, screenshots } from "@/lib/db/schema";
+import { trades, days, lessons, rules, checklistItems, mistakes, accountSnapshots, goals, screenshots, setups } from "@/lib/db/schema";
 import { desc, asc, eq, like, or } from "drizzle-orm";
 import { calcRMultiple } from "@/lib/utils";
 
@@ -217,6 +217,55 @@ export const TOOL_DEFINITIONS = [
       properties: { day: { type: "string" }, tradeId: { type: "number" } },
     },
   },
+  // ── SETUPS ────────────────────────────────────────────
+  {
+    name: "add_setup",
+    description: "Create a new trade setup (reusable strategy template). Conditions are stored as JSON arrays — each condition can be {indicator, operator, value, note}. Direction is BUY / SELL / BOTH.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        description: { type: "string" },
+        direction: { type: "string", enum: ["BUY", "SELL", "BOTH"] },
+        category: { type: "string", description: "e.g. breakout / reversal / trend / mean-reversion / ICT / scalp / exit" },
+        timeframe: { type: "string", description: "e.g. 5m, 15m, 1H, 4H, D" },
+        bestSession: { type: "string", description: "Asian / London / Overlap / NY / Any" },
+        entryConditionsJson: { type: "string", description: "JSON array of {indicator, operator, value, note}" },
+        exitConditionsJson: { type: "string", description: "JSON array of exit conditions" },
+        slRule: { type: "string" },
+        tpRule: { type: "string" },
+        invalidationRule: { type: "string" },
+        confluenceNotes: { type: "string", description: "Extra A+ confluences to look for" },
+        tags: { type: "string", description: "comma-separated" },
+        active: { type: "boolean" },
+      },
+      required: ["name", "direction"],
+    },
+  },
+  {
+    name: "update_setup",
+    description: "Update an existing setup by id",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "number" }, patch: { type: "object" } },
+      required: ["id", "patch"],
+    },
+  },
+  {
+    name: "list_setups",
+    description: "List all trade setups (optionally search with q)",
+    inputSchema: { type: "object", properties: { q: { type: "string" } } },
+  },
+  {
+    name: "get_setup",
+    description: "Fetch a single setup by id",
+    inputSchema: { type: "object", properties: { id: { type: "number" } }, required: ["id"] },
+  },
+  {
+    name: "delete_setup",
+    description: "Delete a setup by id",
+    inputSchema: { type: "object", properties: { id: { type: "number" } }, required: ["id"] },
+  },
   // ── STATS / SUMMARIES ─────────────────────────────────
   {
     name: "stats",
@@ -360,6 +409,28 @@ export async function callTool(name: string, args: Record<string, any> = {}) {
       else rows = db.select().from(screenshots).orderBy(desc(screenshots.uploadedAt)).limit(200).all();
       return textResult(rows);
     }
+
+    // SETUPS
+    case "add_setup": {
+      const now = new Date();
+      const row = db.insert(setups).values({ ...(args as any), createdAt: now, updatedAt: now } as any).returning().get();
+      return textResult(row);
+    }
+    case "update_setup":
+      db.update(setups).set({ ...(args as any).patch, updatedAt: new Date() }).where(eq(setups.id, args.id)).run();
+      return textResult(db.select().from(setups).where(eq(setups.id, args.id)).get());
+    case "list_setups": {
+      const q = args.q;
+      const rows = q
+        ? db.select().from(setups).where(or(like(setups.name, `%${q}%`), like(setups.description, `%${q}%`), like(setups.tags, `%${q}%`))).all()
+        : db.select().from(setups).all();
+      return textResult(rows);
+    }
+    case "get_setup":
+      return textResult(db.select().from(setups).where(eq(setups.id, args.id)).get() ?? null);
+    case "delete_setup":
+      db.delete(setups).where(eq(setups.id, args.id)).run();
+      return textResult({ ok: true });
 
     // STATS / SUMMARY
     case "stats":

@@ -257,6 +257,31 @@ docker compose exec tradepad npm run backup
 
 Or just copy `./data/journal.db` anywhere. It's a single file.
 
+## 🚚 Migration / Deployment
+
+When moving Tradepad to a new server or copying an existing database:
+
+1. **Copy database files** (if migrating existing data):
+   ```bash
+   # Copy all SQLite files to preserve WAL mode state
+   scp ./data/journal.db* user@newserver:/path/to/tradepad/data/
+   ```
+
+2. **Fix file permissions** (important for Docker write access):
+   ```bash
+   chmod 666 ./data/journal.db*
+   ```
+
+3. **Deploy and start**:
+   ```bash
+   git clone https://github.com/ehabhussein/TradePad.git
+   cd TradePad
+   cp .env.example .env    # edit API_KEY for production
+   docker compose up -d --build
+   ```
+
+**Note**: SQLite WAL mode requires write permissions on `.db`, `.db-wal`, and `.db-shm` files. The Docker container runs as a non-root user, so 666 permissions ensure write access.
+
 ## 🛠️ Development
 
 ```bash

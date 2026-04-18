@@ -1,12 +1,12 @@
 import { db } from "@/lib/db";
-import { trades, days, accountSnapshots } from "@/lib/db/schema";
+import { trades, days, accountSnapshots, mistakes } from "@/lib/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PnLHeatmap } from "@/components/charts/pnl-heatmap";
 import { EquityCurve } from "@/components/charts/equity-curve";
 import { formatUsd, pnlColor } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { desc, asc } from "drizzle-orm";
-import { ArrowDownRight, ArrowUpRight, Flame, Target, TrendingUp, Trophy } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, Flame, Skull, Target, TrendingUp, Trophy, Zap } from "lucide-react";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +15,7 @@ async function getData() {
   const allTrades = db.select().from(trades).orderBy(asc(trades.openedAt)).all();
   const allDays = db.select().from(days).orderBy(desc(days.date)).limit(7).all();
   const snapshots = db.select().from(accountSnapshots).orderBy(asc(accountSnapshots.date)).all();
+  const allMistakes = db.select().from(mistakes).orderBy(desc(mistakes.createdAt)).all();
 
   const dailyPnL = new Map<string, number>();
   for (const t of allTrades) {
@@ -47,7 +48,30 @@ async function getData() {
     else break;
   }
 
-  return { heatmap, equity, totalPnL, winRate, closedCount: closed.length, curStreak, streakType, recentDays: allDays, allTradesLen: allTrades.length };
+  // Mistakes aggregations
+  const tagCounts = new Map<string, number>();
+  allMistakes.forEach((m) => tagCounts.set(m.tag, (tagCounts.get(m.tag) ?? 0) + 1));
+  const rankedTags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const maxTagCount = Math.max(1, ...rankedTags.map(([, c]) => c));
+  const lastSevenDaysMistakes = allMistakes.filter((m) => {
+    const t = (m.createdAt as unknown as number) * 1000;
+    return Date.now() - t < 7 * 24 * 60 * 60 * 1000;
+  }).length;
+  const recentMistakes = allMistakes.slice(0, 3);
+
+  return {
+    heatmap, equity, totalPnL, winRate, closedCount: closed.length, curStreak, streakType,
+    recentDays: allDays, allTradesLen: allTrades.length,
+    mistakes: {
+      total: allMistakes.length,
+      uniqueTags: tagCounts.size,
+      lastSevenDays: lastSevenDaysMistakes,
+      topOffender: rankedTags[0] ? { tag: rankedTags[0][0], count: rankedTags[0][1] } : null,
+      ranked: rankedTags,
+      maxCount: maxTagCount,
+      recent: recentMistakes,
+    },
+  };
 }
 
 export default async function HomePage() {
@@ -135,6 +159,105 @@ export default async function HomePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Mistakes were made — dramatic section */}
+      <Link href="/mistakes" className="block group">
+        <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-loss/10 via-orange-500/5 to-background transition hover:border-loss/40">
+          <div className="absolute -top-12 -right-12 size-48 rounded-full bg-loss/10 blur-3xl" />
+          <div className="absolute -bottom-12 -left-12 size-48 rounded-full bg-orange-500/10 blur-3xl" />
+          <div className="relative p-6 md:p-8 space-y-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="size-11 rounded-xl bg-loss/20 flex items-center justify-center">
+                  <Skull className="size-5 text-loss" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight">Mistakes were made.</h2>
+                  <p className="text-sm text-muted-foreground">Every mistake is a paid lesson. Don't pay twice.</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</p>
+                  <p className="text-xl font-bold font-mono text-loss">{data.mistakes.total}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">7 days</p>
+                  <p className={cn("text-xl font-bold font-mono", data.mistakes.lastSevenDays > 3 ? "text-loss" : "text-orange-400")}>
+                    {data.mistakes.lastSevenDays}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Patterns</p>
+                  <p className="text-xl font-bold font-mono">{data.mistakes.uniqueTags}</p>
+                </div>
+              </div>
+            </div>
+
+            {data.mistakes.total === 0 ? (
+              <div className="py-4 text-center text-muted-foreground text-sm">
+                <p>No mistakes logged yet.</p>
+                <p className="text-xs mt-1">That's either perfection… or denial. 😉</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Repeat offenders */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <Zap className="size-3.5 text-loss" />
+                    <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Repeat Offenders</h3>
+                  </div>
+                  <div className="space-y-2.5">
+                    {data.mistakes.ranked.map(([tag, count]) => {
+                      const intensity = count / data.mistakes.maxCount;
+                      const barColor = intensity > 0.7
+                        ? "bg-loss/30 border-loss/50"
+                        : intensity > 0.4
+                        ? "bg-orange-500/20 border-orange-500/40"
+                        : "bg-yellow-500/10 border-yellow-500/30";
+                      return (
+                        <div key={tag} className="space-y-1">
+                          <div className="flex items-baseline justify-between">
+                            <span className="font-mono text-xs">{tag}</span>
+                            <span className="text-[10px] text-muted-foreground">×{count}</span>
+                          </div>
+                          <div className="h-5 rounded bg-muted/30 overflow-hidden">
+                            <div className={cn("h-full rounded border", barColor)} style={{ width: `${intensity * 100}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Recent mistakes */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <AlertTriangle className="size-3.5 text-loss" />
+                    <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Recent</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {data.mistakes.recent.map((m) => (
+                      <div key={m.id} className="flex items-start gap-2.5 p-2.5 rounded-lg bg-background/40 border border-border/50">
+                        <div className="size-7 rounded-md bg-loss/15 flex items-center justify-center flex-shrink-0">
+                          <AlertTriangle className="size-3 text-loss" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-mono text-xs text-loss">{m.tag}</span>
+                            {m.dayDate && <span className="text-[10px] text-muted-foreground">{m.dayDate}</span>}
+                          </div>
+                          {m.notes && <p className="text-xs text-muted-foreground truncate mt-0.5">{m.notes}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </Link>
     </div>
   );
 }

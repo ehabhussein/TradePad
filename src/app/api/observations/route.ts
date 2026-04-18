@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
   const symbol = u.searchParams.get("symbol");
   const category = u.searchParams.get("category");
   const hour = u.searchParams.get("hour");
+  const weekday = u.searchParams.get("weekday");
 
   if (id) {
     return NextResponse.json(db.select().from(observations).where(eq(observations.id, Number(id))).get() ?? null);
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest) {
   if (symbol) where.push(eq(observations.symbol, symbol));
   if (category) where.push(eq(observations.category, category));
   if (hour !== null && hour !== "") where.push(eq(observations.hourUtc, Number(hour)));
+  if (weekday !== null && weekday !== "") where.push(eq(observations.weekdayUtc, Number(weekday)));
   if (q) where.push(or(like(observations.title, `%${q}%`), like(observations.body, `%${q}%`), like(observations.tags, `%${q}%`)));
 
   const rows = where.length

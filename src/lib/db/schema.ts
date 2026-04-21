@@ -32,7 +32,8 @@ export const trades = sqliteTable("trades", {
   quantity: real("quantity").notNull(),
   pnl: real("pnl"),
   rMultiple: real("r_multiple"),
-  setupType: text("setup_type"), // e.g. "Pivot Bounce BUY"
+  setupId: integer("setup_id"), // FK to setups.id (added via ALTER in db/index.ts; keep nullable so pre-feature trades still work)
+  setupType: text("setup_type"), // display-only fallback / free-text when setup_id is null
   session: text("session"), // Asian / London / Overlap / NY
   confluenceScore: integer("confluence_score"), // 0-14
   notesEntry: text("notes_entry"),

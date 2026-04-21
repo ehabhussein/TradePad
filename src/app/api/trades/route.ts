@@ -24,6 +24,7 @@ const tradeSchema = z.object({
   takeProfit: z.number().optional(),
   quantity: z.number(),
   pnl: z.number().optional(),
+  setupId: z.number().int().positive().optional(),
   setupType: z.string().optional(),
   session: z.string().optional(),
   confluenceScore: z.number().min(0).max(14).optional(),

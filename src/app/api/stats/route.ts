@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { trades, days, accountSnapshots, mistakes } from "@/lib/db/schema";
+import { trades, days, accountSnapshots, mistakes, setups as setupsTable } from "@/lib/db/schema";
 import { requireApiKey } from "@/lib/auth";
 import { desc, asc } from "drizzle-orm";
 
@@ -73,17 +73,39 @@ export async function GET(req: NextRequest) {
     return { bucket: next == null ? `${r}+R` : `${r}R`, count, r };
   });
 
-  // Setup performance
-  const setupMap = new Map<string, { wins: number; losses: number; pnl: number }>();
+  // Setup performance — grouped by setup_id first (canonical name from setups table),
+  // trades without an FK fall back to the free-text setup_type string.
+  const allSetups = db.select().from(setupsTable).all();
+  const setupNameById = new Map(allSetups.map((s) => [s.id, s.name]));
+  type SetupAgg = { wins: number; losses: number; pnl: number; rSum: number; rCount: number; bestSessionCounts: Map<string, number> };
+  const empty = (): SetupAgg => ({ wins: 0, losses: 0, pnl: 0, rSum: 0, rCount: 0, bestSessionCounts: new Map() });
+  const setupMap = new Map<string, SetupAgg>();
   for (const t of closed) {
-    const k = t.setupType || "Unknown";
-    const m = setupMap.get(k) ?? { wins: 0, losses: 0, pnl: 0 };
+    const label = (t.setupId != null && setupNameById.has(t.setupId))
+      ? setupNameById.get(t.setupId)!
+      : (t.setupType || "Unknown");
+    const m = setupMap.get(label) ?? empty();
     if ((t.pnl ?? 0) > 0) m.wins++;
     else m.losses++;
     m.pnl += t.pnl ?? 0;
-    setupMap.set(k, m);
+    if (t.rMultiple != null) { m.rSum += t.rMultiple; m.rCount++; }
+    if (t.session) m.bestSessionCounts.set(t.session, (m.bestSessionCounts.get(t.session) ?? 0) + 1);
+    setupMap.set(label, m);
   }
-  const setups = Array.from(setupMap, ([name, v]) => ({ name, ...v, winRate: v.wins / (v.wins + v.losses || 1) }));
+  const setups = Array.from(setupMap, ([name, v]) => {
+    const total = v.wins + v.losses || 1;
+    const bestSession = [...v.bestSessionCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    return {
+      name,
+      wins: v.wins,
+      losses: v.losses,
+      pnl: v.pnl,
+      winRate: v.wins / total,
+      avgR: v.rCount ? v.rSum / v.rCount : null,
+      avgPnL: v.pnl / total,
+      bestSession,
+    };
+  });
 
   // Session heatmap (hour UTC)
   const hourMap = new Map<number, { wins: number; total: number }>();

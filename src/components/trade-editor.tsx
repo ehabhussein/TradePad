@@ -1,6 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
-import type { Trade, Screenshot } from "@/lib/db/schema";
+import type { Trade, Screenshot, Setup } from "@/lib/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { useDropzone } from "react-dropzone";
 import { PasteImage } from "@/components/paste-image";
 
-export function TradeEditor({ trade, screenshots = [] }: { trade?: Trade; screenshots?: Screenshot[] }) {
+export function TradeEditor({ trade, screenshots = [], setups = [] }: { trade?: Trade; screenshots?: Screenshot[]; setups?: Setup[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const isNew = !trade;
@@ -30,6 +30,7 @@ export function TradeEditor({ trade, screenshots = [] }: { trade?: Trade; screen
     takeProfit: trade?.takeProfit ?? null,
     quantity: trade?.quantity ?? 0.01,
     pnl: trade?.pnl ?? null,
+    setupId: trade?.setupId ?? null as number | null,
     setupType: trade?.setupType ?? "",
     session: trade?.session ?? "London",
     confluenceScore: trade?.confluenceScore ?? null,
@@ -52,6 +53,7 @@ export function TradeEditor({ trade, screenshots = [] }: { trade?: Trade; screen
           takeProfit: f.takeProfit == null ? undefined : Number(f.takeProfit),
           quantity: Number(f.quantity),
           pnl: f.pnl == null ? undefined : Number(f.pnl),
+          setupId: f.setupId == null ? undefined : Number(f.setupId),
           confluenceScore: f.confluenceScore == null ? undefined : Number(f.confluenceScore),
           mood: Number(f.mood),
           openedAt: new Date(f.openedAt).toISOString(),
@@ -188,9 +190,36 @@ export function TradeEditor({ trade, screenshots = [] }: { trade?: Trade; screen
               </SelectContent>
             </Select>
           </div>
-          <div className="md:col-span-3">
-            <Label>Setup type</Label>
-            <Input value={f.setupType} onChange={(e) => setF({ ...f, setupType: e.target.value })} placeholder="e.g. Pivot Bounce BUY, Liquidity Sweep Reversal" />
+          <div className="md:col-span-3 grid md:grid-cols-2 gap-4">
+            <div>
+              <Label>Setup</Label>
+              <Select
+                value={f.setupId == null ? "__custom__" : String(f.setupId)}
+                onValueChange={(v) => {
+                  if (v === "__custom__") setF({ ...f, setupId: null });
+                  else {
+                    const s = setups.find((x) => x.id === Number(v));
+                    setF({ ...f, setupId: Number(v), setupType: s?.name ?? f.setupType });
+                  }
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Pick a setup" /></SelectTrigger>
+                <SelectContent>
+                  {setups.map((s) => (
+                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                  ))}
+                  <SelectItem value="__custom__">— Custom (free-text below) —</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>{f.setupId == null ? "Custom setup description" : "Notes on this setup instance"}</Label>
+              <Input
+                value={f.setupType}
+                onChange={(e) => setF({ ...f, setupType: e.target.value })}
+                placeholder={f.setupId == null ? "e.g. Pivot Bounce BUY" : "variation, conditions, nuances..."}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

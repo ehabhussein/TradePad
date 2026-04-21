@@ -5,6 +5,8 @@ import { DailyPnLChart } from "@/components/charts/daily-pnl-chart";
 import { EquityCurve } from "@/components/charts/equity-curve";
 import { SessionStatus } from "@/components/session-status";
 import { GoalsCard } from "@/components/goals-card";
+import { TiltBanner } from "@/components/tilt-banner";
+import { computeTiltState } from "@/lib/tilt";
 import { formatUsd, pnlColor } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { desc, asc } from "drizzle-orm";
@@ -78,7 +80,10 @@ async function getData() {
 
   const latestBalance = snapshots.length ? snapshots[snapshots.length - 1].balance : null;
 
+  const tilt = computeTiltState({ trades: allTrades, snapshots, todayKey });
+
   return {
+    tilt,
     heatmap, equity, totalPnL, winRate, closedCount: closed.length, curStreak, streakType,
     recentDays: recentDaysWithPnL, allTradesLen: allTrades.length,
     todayPnL, todayTradeCount, todayKey,
@@ -120,6 +125,8 @@ export default async function HomePage() {
           <p className="text-muted-foreground">Your edge, quantified. Press <kbd className="px-1.5 py-0.5 rounded border text-xs">Ctrl+K</kbd> (or click Quick add) to log anything.</p>
         </div>
       </header>
+
+      {data.tilt.active && <TiltBanner reasons={data.tilt.reasons} />}
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         {stats.map((s) => (

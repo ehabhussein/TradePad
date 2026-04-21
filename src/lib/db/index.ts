@@ -74,6 +74,18 @@ sqlite.exec(`CREATE TABLE IF NOT EXISTS observations (
 try { sqlite.exec("ALTER TABLE observations ADD COLUMN outcome text DEFAULT 'pending'"); } catch {}
 try { sqlite.exec("ALTER TABLE observations ADD COLUMN outcome_notes text"); } catch {}
 
+// Add setup_id FK on trades (soft migration — ALTER fails silently if column already exists).
+try { sqlite.exec("ALTER TABLE trades ADD COLUMN setup_id integer"); } catch {}
+// Backfill: match existing trades.setup_type strings to setups.name (case-insensitive).
+// Only runs when setup_id is null so repeated boots don't clobber manual assignments.
+try {
+  sqlite.exec(`
+    UPDATE trades
+       SET setup_id = (SELECT id FROM setups WHERE LOWER(setups.name) = LOWER(trades.setup_type) LIMIT 1)
+     WHERE setup_id IS NULL AND setup_type IS NOT NULL AND TRIM(setup_type) <> ''
+  `);
+} catch (e) { console.error("[db] setup_id backfill failed", e); }
+
 // Ensure code_snippets table exists
 sqlite.exec(`CREATE TABLE IF NOT EXISTS code_snippets (
   id integer PRIMARY KEY AUTOINCREMENT NOT NULL,

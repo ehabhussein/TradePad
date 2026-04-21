@@ -65,6 +65,12 @@
   @media (min-width: 1024px) {
     html[data-sidebar="rail"] { --sidebar-w: 3.5rem; }
     html[data-sidebar="full"] { --sidebar-w: 16rem; }
+    /* High-specificity rule so Tailwind's `container` px defaults
+       can't win. Keeps content out from under the fixed sidebar. */
+    main.app-main {
+      padding-left: calc(var(--sidebar-w) + 1rem);
+      transition: padding-left 200ms ease;
+    }
   }
 }
 

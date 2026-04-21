@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${sans.variable} ${mono.variable} font-sans min-h-screen gradient-mesh`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <Nav />
-          <main className="container max-w-7xl py-8 animate-fade-in lg:pl-[calc(var(--sidebar-w)+1rem)] lg:pr-80 lg:transition-[padding-left] lg:duration-200">
+          <main className="app-main container max-w-7xl py-8 animate-fade-in lg:pr-80">
             {children}
           </main>
           <ObservationsDock />

@@ -6,7 +6,7 @@ import { EquityCurve } from "@/components/charts/equity-curve";
 import { formatUsd, pnlColor } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { desc, asc } from "drizzle-orm";
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, Flame, Skull, Target, TrendingUp, Trophy, Zap } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, CalendarDays, Flame, Skull, Target, TrendingUp, Trophy, Zap } from "lucide-react";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -59,9 +59,24 @@ async function getData() {
   }).length;
   const recentMistakes = allMistakes.slice(0, 3);
 
+  // Today's UTC day key, matches the day_date stored for trades.
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayPnL = dailyPnL.get(todayKey) ?? 0;
+  const todayTradeCount = allTrades.filter((t) => t.dayDate === todayKey).length;
+
+  // For the Recent Days panel: prefer the manually-closed daily_close_pnl
+  // when set, else fall back to the sum of the day's trade P/L so days
+  // without an explicit close still show a meaningful number.
+  const recentDaysWithPnL = allDays.map((d) => ({
+    ...d,
+    effectivePnL: d.dailyClosePnL ?? dailyPnL.get(d.date) ?? 0,
+    hasExplicitClose: d.dailyClosePnL != null,
+  }));
+
   return {
     heatmap, equity, totalPnL, winRate, closedCount: closed.length, curStreak, streakType,
-    recentDays: allDays, allTradesLen: allTrades.length,
+    recentDays: recentDaysWithPnL, allTradesLen: allTrades.length,
+    todayPnL, todayTradeCount, todayKey,
     mistakes: {
       total: allMistakes.length,
       uniqueTags: tagCounts.size,
@@ -77,6 +92,12 @@ async function getData() {
 export default async function HomePage() {
   const data = await getData();
   const stats = [
+    {
+      label: `Today (${data.todayTradeCount} ${data.todayTradeCount === 1 ? "trade" : "trades"})`,
+      value: data.todayTradeCount ? formatUsd(data.todayPnL, { sign: true }) : "—",
+      icon: CalendarDays,
+      tone: data.todayTradeCount === 0 ? "neutral" : data.todayPnL >= 0 ? "profit" : "loss",
+    },
     { label: "Total P/L", value: formatUsd(data.totalPnL, { sign: true }), icon: TrendingUp, tone: data.totalPnL >= 0 ? "profit" : "loss" },
     { label: "Win Rate", value: `${data.winRate.toFixed(1)}%`, icon: Target, tone: data.winRate >= 50 ? "profit" : "loss" },
     { label: "Trades", value: data.closedCount.toString(), icon: Trophy, tone: "neutral" },
@@ -94,7 +115,7 @@ export default async function HomePage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         {stats.map((s) => (
           <Card key={s.label} className="overflow-hidden">
             <CardContent className="p-5 flex items-start justify-between">
@@ -147,11 +168,14 @@ export default async function HomePage() {
                     <p className="text-sm font-medium">{d.date}</p>
                     <p className="text-xs text-muted-foreground truncate max-w-[180px]">{d.whatHappened || "—"}</p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    {(d.dailyClosePnL ?? 0) >= 0 ? <ArrowUpRight className="size-3 text-profit" /> : <ArrowDownRight className="size-3 text-loss" />}
-                    <span className={cn("text-sm font-mono", pnlColor(d.dailyClosePnL))}>
-                      {formatUsd(d.dailyClosePnL, { sign: true })}
+                  <div className="flex items-center gap-1" title={d.hasExplicitClose ? "Manually-entered close" : "Sum of trades on this day"}>
+                    {d.effectivePnL >= 0 ? <ArrowUpRight className="size-3 text-profit" /> : <ArrowDownRight className="size-3 text-loss" />}
+                    <span className={cn("text-sm font-mono", pnlColor(d.effectivePnL))}>
+                      {formatUsd(d.effectivePnL, { sign: true })}
                     </span>
+                    {!d.hasExplicitClose && d.effectivePnL !== 0 && (
+                      <span className="text-[9px] text-muted-foreground uppercase tracking-wider">calc</span>
+                    )}
                   </div>
                 </Link>
               ))

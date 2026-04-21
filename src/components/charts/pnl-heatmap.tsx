@@ -17,16 +17,20 @@ function intensityClass(pnl: number, maxAbs: number): string {
 export function PnLHeatmap({ data, weeks = 26 }: { data: DayPnL[]; weeks?: number }) {
   const { grid, maxAbs, total } = useMemo(() => {
     const map = new Map(data.map((d) => [d.date, d.pnl]));
+    // Use UTC throughout so grid keys match the UTC-based day_date stored
+    // for each trade. Mixing setHours (local) with toISOString (UTC) was
+    // producing grid cells labeled one day behind for any timezone east of
+    // UTC — every cell became a zero miss.
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
     const start = new Date(today);
-    start.setDate(today.getDate() - weeks * 7 - today.getDay());
+    start.setUTCDate(today.getUTCDate() - weeks * 7 - today.getUTCDay());
     const grid: { date: string; pnl: number }[][] = [];
     for (let w = 0; w < weeks; w++) {
       const col: { date: string; pnl: number }[] = [];
       for (let d = 0; d < 7; d++) {
         const cur = new Date(start);
-        cur.setDate(start.getDate() + w * 7 + d);
+        cur.setUTCDate(start.getUTCDate() + w * 7 + d);
         const iso = cur.toISOString().slice(0, 10);
         col.push({ date: iso, pnl: map.get(iso) ?? 0 });
       }

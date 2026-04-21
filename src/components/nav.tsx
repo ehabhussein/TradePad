@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BarChart3, BookOpen, Calendar, ChevronsLeft, ChevronsRight, Code2, Eye, Home, LineChart, ListChecks, Menu,
+  BarChart3, BookOpen, Calendar, ChevronsLeft, ChevronsRight, Code2, Eye, Flag, Home, LineChart, ListChecks, Menu,
   Search, Shield, Skull, Sparkles, Target, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ const primary = [
 const secondary = [
   { href: "/observations", label: "Observations", icon: Eye, tint: "from-cyan-500 to-cyan-500/60" },
   { href: "/setups", label: "Setups", icon: Target, tint: "from-primary to-primary/60" },
+  { href: "/goals", label: "Goals", icon: Flag, tint: "from-orange-500 to-orange-500/60" },
   { href: "/code", label: "Code Library", icon: Code2, tint: "from-blue-500 to-blue-500/60" },
   { href: "/lessons", label: "Lessons", icon: BookOpen, tint: "from-amber-500 to-amber-500/60" },
   { href: "/mistakes", label: "Mistakes", icon: Skull, tint: "from-loss to-loss/60" },

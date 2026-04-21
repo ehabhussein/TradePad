@@ -40,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </main>
           <ObservationsDock />
           <CommandPalette />
-          <Toaster theme="dark" position="bottom-right" richColors />
+          <Toaster theme="dark" position="top-right" richColors offset={72} />
         </ThemeProvider>
       </body>
     </html>

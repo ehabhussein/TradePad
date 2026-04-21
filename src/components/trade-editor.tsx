@@ -43,27 +43,34 @@ export function TradeEditor({ trade, screenshots = [] }: { trade?: Trade; screen
 
   const save = () => {
     start(async () => {
-      const payload: Record<string, unknown> = {
-        ...f,
-        entryPrice: Number(f.entryPrice),
-        exitPrice: f.exitPrice == null ? undefined : Number(f.exitPrice),
-        stopLoss: f.stopLoss == null ? undefined : Number(f.stopLoss),
-        takeProfit: f.takeProfit == null ? undefined : Number(f.takeProfit),
-        quantity: Number(f.quantity),
-        pnl: f.pnl == null ? undefined : Number(f.pnl),
-        confluenceScore: f.confluenceScore == null ? undefined : Number(f.confluenceScore),
-        mood: Number(f.mood),
-        openedAt: new Date(f.openedAt).toISOString(),
-        closedAt: f.closedAt ? new Date(f.closedAt).toISOString() : undefined,
-      };
-      const url = isNew ? "/api/trades" : `/api/trades?id=${trade.id}`;
-      const res = await fetch(url, { method: isNew ? "POST" : "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      if (res.ok) {
-        const j = await res.json();
-        toast.success(isNew ? "Trade added" : "Trade updated");
-        if (isNew) router.push(`/trades/${j.id}`);
-        else router.refresh();
-      } else toast.error("Failed to save");
+      try {
+        const payload: Record<string, unknown> = {
+          ...f,
+          entryPrice: Number(f.entryPrice),
+          exitPrice: f.exitPrice == null ? undefined : Number(f.exitPrice),
+          stopLoss: f.stopLoss == null ? undefined : Number(f.stopLoss),
+          takeProfit: f.takeProfit == null ? undefined : Number(f.takeProfit),
+          quantity: Number(f.quantity),
+          pnl: f.pnl == null ? undefined : Number(f.pnl),
+          confluenceScore: f.confluenceScore == null ? undefined : Number(f.confluenceScore),
+          mood: Number(f.mood),
+          openedAt: new Date(f.openedAt).toISOString(),
+          closedAt: f.closedAt ? new Date(f.closedAt).toISOString() : undefined,
+        };
+        const url = isNew ? "/api/trades" : `/api/trades?id=${trade.id}`;
+        const res = await fetch(url, { method: isNew ? "POST" : "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        if (res.ok) {
+          const j = await res.json();
+          toast.success(isNew ? "Trade added" : "Trade updated");
+          if (isNew) router.push(`/trades/${j.id}`);
+          else router.refresh();
+        } else {
+          const body = await res.text();
+          toast.error(`Save failed (${res.status}): ${body.slice(0, 300)}`);
+        }
+      } catch (err: any) {
+        toast.error(`Save error: ${err?.message ?? err}`);
+      }
     });
   };
 

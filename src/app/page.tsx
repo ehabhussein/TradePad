@@ -1,8 +1,10 @@
 import { db } from "@/lib/db";
-import { trades, days, accountSnapshots, mistakes } from "@/lib/db/schema";
+import { trades, days, accountSnapshots, mistakes, goals } from "@/lib/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DailyPnLChart } from "@/components/charts/daily-pnl-chart";
 import { EquityCurve } from "@/components/charts/equity-curve";
+import { SessionStatus } from "@/components/session-status";
+import { GoalsCard } from "@/components/goals-card";
 import { formatUsd, pnlColor } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { desc, asc } from "drizzle-orm";
@@ -16,6 +18,7 @@ async function getData() {
   const allDays = db.select().from(days).orderBy(desc(days.date)).limit(7).all();
   const snapshots = db.select().from(accountSnapshots).orderBy(asc(accountSnapshots.date)).all();
   const allMistakes = db.select().from(mistakes).orderBy(desc(mistakes.createdAt)).all();
+  const allGoals = db.select().from(goals).orderBy(desc(goals.createdAt)).all();
 
   const dailyPnL = new Map<string, number>();
   for (const t of allTrades) {
@@ -73,10 +76,13 @@ async function getData() {
     hasExplicitClose: d.dailyClosePnL != null,
   }));
 
+  const latestBalance = snapshots.length ? snapshots[snapshots.length - 1].balance : null;
+
   return {
     heatmap, equity, totalPnL, winRate, closedCount: closed.length, curStreak, streakType,
     recentDays: recentDaysWithPnL, allTradesLen: allTrades.length,
     todayPnL, todayTradeCount, todayKey,
+    goals: allGoals, latestBalance,
     mistakes: {
       total: allMistakes.length,
       uniqueTags: tagCounts.size,
@@ -131,6 +137,8 @@ export default async function HomePage() {
         ))}
       </div>
 
+      <SessionStatus />
+
       <Card>
         <CardHeader>
           <CardTitle>Daily P/L</CardTitle>
@@ -154,7 +162,11 @@ export default async function HomePage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <GoalsCard goals={data.goals} accountBalance={data.latestBalance} />
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Recent Days</CardTitle>
           </CardHeader>

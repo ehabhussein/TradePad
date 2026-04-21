@@ -209,8 +209,27 @@ export function formatDuration(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
   if (h >= 24) return `${Math.floor(h / 24)}d ${h % 24}h`;
   if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m`;
-  return `${s}s`;
+  // Show seconds in the final minutes so users see it tick.
+  if (m > 0) return `${m}m ${String(sec).padStart(2, "0")}s`;
+  return `${sec}s`;
+}
+
+/**
+ * Per-session countdown: if the session is active, returns seconds until it
+ * closes (with label "closes in"); if closed, returns seconds until it next
+ * opens (label "opens in"). Returns null during weekend shutdown.
+ */
+export function getSessionCountdown(session: SessionDef, now: Date = new Date()): { label: "closes in" | "opens in"; seconds: number } | null {
+  if (isWeekendClosed(now)) return null;
+  const isActive = getActiveSessions(now).some((s) => s.name === session.name);
+  const events = upcomingEvents(now, 48);
+  const target = events.find((e) => e.session.name === session.name && e.type === (isActive ? "close" : "open"));
+  if (!target) return null;
+  return {
+    label: isActive ? "closes in" : "opens in",
+    seconds: Math.max(0, (target.at.getTime() - now.getTime()) / 1000),
+  };
 }

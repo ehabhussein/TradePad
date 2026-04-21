@@ -8,6 +8,7 @@ import {
   getEffectiveWindow,
   getNextEvent,
   getOverlaps,
+  getSessionCountdown,
   getSessionProgress,
   isWeekendClosed,
   secondsUntilMarketOpen,
@@ -27,7 +28,8 @@ export function SessionStatus() {
       const z = parts.find((p) => p.type === "timeZoneName")?.value;
       if (z) setTzLabel(z);
     } catch {}
-    const t = setInterval(() => setNow(new Date()), 30_000);
+    // Tick every 1s so per-session countdowns update live.
+    const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -94,6 +96,7 @@ export function SessionStatus() {
           const progress = isActive ? getSessionProgress(s, now) : 0;
           const localOpen = formatInUserLocal(win.startUTC, now);
           const localClose = formatInUserLocal(win.endUTC, now);
+          const countdown = closed ? null : getSessionCountdown(s, now);
           return (
             <div key={s.name} className="px-2 py-2.5 flex items-center gap-3">
               {/* Status dot */}
@@ -127,12 +130,31 @@ export function SessionStatus() {
               </div>
 
               {/* Progress bar */}
-              <div className="w-24 shrink-0 h-1.5 rounded-full bg-muted/40 overflow-hidden">
+              <div className="w-20 shrink-0 h-1.5 rounded-full bg-muted/40 overflow-hidden">
                 {isActive && (
                   <div
                     className={cn("h-full bg-gradient-to-r", s.tint)}
                     style={{ width: `${progress * 100}%` }}
                   />
+                )}
+              </div>
+
+              {/* Countdown */}
+              <div className="w-28 shrink-0 text-right">
+                {countdown ? (
+                  <div className="leading-tight">
+                    <div className="text-[9px] uppercase tracking-wider text-muted-foreground">
+                      {countdown.label}
+                    </div>
+                    <div className={cn(
+                      "text-xs font-mono tabular-nums font-medium",
+                      isActive ? "text-foreground" : "text-muted-foreground"
+                    )}>
+                      {formatDuration(countdown.seconds)}
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground/40">—</span>
                 )}
               </div>
             </div>

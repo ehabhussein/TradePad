@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { trades, days, accountSnapshots, mistakes } from "@/lib/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PnLHeatmap } from "@/components/charts/pnl-heatmap";
+import { DailyPnLChart } from "@/components/charts/daily-pnl-chart";
 import { EquityCurve } from "@/components/charts/equity-curve";
 import { formatUsd, pnlColor } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -133,10 +133,10 @@ export default async function HomePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>P/L Calendar</CardTitle>
+          <CardTitle>Daily P/L</CardTitle>
         </CardHeader>
         <CardContent>
-          <PnLHeatmap data={data.heatmap} />
+          <DailyPnLChart data={data.heatmap} />
         </CardContent>
       </Card>
 

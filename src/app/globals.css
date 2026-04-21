@@ -58,18 +58,22 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
   }
-  /* Sidebar width var, driven by html[data-sidebar] set by Nav.
-     Used by main padding-left on lg+. Default rail width so the
-     pre-hydration script has a safe fallback. */
-  html { --sidebar-w: 0px; }
+  /* Sidebar and dock widths, driven by html[data-sidebar] / html[data-dock]
+     set in pre-hydration scripts in layout.tsx. Used to size main's
+     horizontal padding on lg+. Defaults are 0 so mobile never gets them. */
+  html { --sidebar-w: 0px; --dock-w: 0px; }
   @media (min-width: 1024px) {
     html[data-sidebar="rail"] { --sidebar-w: 3.5rem; }
     html[data-sidebar="full"] { --sidebar-w: 16rem; }
+    html[data-dock="rail"]    { --dock-w: 3.5rem; }
+    html[data-dock="full"]    { --dock-w: 18rem; }
+    html[data-dock="none"]    { --dock-w: 0px; }
     /* High-specificity rule so Tailwind's `container` px defaults
-       can't win. Keeps content out from under the fixed sidebar. */
+       can't win. Keeps content clear of both fixed panels. */
     main.app-main {
       padding-left: calc(var(--sidebar-w) + 1rem);
-      transition: padding-left 200ms ease;
+      padding-right: calc(var(--dock-w) + 1rem);
+      transition: padding-left 200ms ease, padding-right 200ms ease;
     }
   }
 }

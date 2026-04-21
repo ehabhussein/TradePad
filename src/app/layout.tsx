@@ -16,26 +16,37 @@ export const metadata: Metadata = {
   description: "A beautiful trading journal for traders who care about their edge",
 };
 
-// Pre-hydration script: read the sidebar preference and stamp <html data-sidebar=...>
-// BEFORE React paints, so the CSS var --sidebar-w is already correct on first render.
-// Otherwise collapsed users would see a flash from expanded → collapsed on page load.
-const sidebarBootScript = `
+// Pre-hydration script: stamp <html data-sidebar / data-dock> BEFORE React
+// paints so the --sidebar-w / --dock-w CSS vars are correct on first render.
+// The /observations page hides the dock entirely, so resolve that here too —
+// otherwise main would briefly have right-padding reserved for a dock that
+// isn't going to render.
+const layoutBootScript = `
 try {
   var s = localStorage.getItem('tradepad.sidebar.collapsed');
   document.documentElement.dataset.sidebar = (s === '0') ? 'full' : 'rail';
 } catch (e) { document.documentElement.dataset.sidebar = 'rail'; }
+try {
+  var onObsPage = location.pathname.indexOf('/observations') === 0;
+  if (onObsPage) {
+    document.documentElement.dataset.dock = 'none';
+  } else {
+    var d = localStorage.getItem('tradepad.dock.collapsed');
+    document.documentElement.dataset.dock = (d === '1') ? 'rail' : 'full';
+  }
+} catch (e) { document.documentElement.dataset.dock = 'full'; }
 `;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: sidebarBootScript }} />
+        <script dangerouslySetInnerHTML={{ __html: layoutBootScript }} />
       </head>
       <body className={`${sans.variable} ${mono.variable} font-sans min-h-screen gradient-mesh`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <Nav />
-          <main className="app-main container max-w-7xl py-8 animate-fade-in lg:pr-80">
+          <main className="app-main container max-w-7xl py-8 animate-fade-in">
             {children}
           </main>
           <ObservationsDock />

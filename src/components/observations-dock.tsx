@@ -1,10 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import type { Observation } from "@/lib/db/schema";
-import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronRight, Clock, Eye, Minus, Plus, X } from "lucide-react";
+import { Check, ChevronsLeft, ChevronsRight, Clock, Eye, Minus, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -26,18 +25,35 @@ const CATEGORY_DOT: Record<string, string> = {
   "level-reaction": "bg-profit",
 };
 
+const STORAGE_KEY = "tradepad.dock.collapsed";
+
 export function ObservationsDock() {
   const pathname = usePathname();
-  const router = useRouter();
   const [items, setItems] = useState<Observation[]>([]);
   const [collapsed, setCollapsed] = useState(false);
 
-  // Today's weekday (UTC to match stored values)
   const todayWeekday = new Date().getUTCDay();
   const weekdayName = WEEKDAYS[todayWeekday];
 
-  // Hide entirely on /observations page
-  const hidden = pathname?.startsWith("/observations");
+  // Hide entirely on /observations page — set data-dock="none" so main reclaims the space.
+  const hidden = pathname?.startsWith("/observations") ?? false;
+
+  // Hydrate collapsed preference from localStorage
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
+    if (saved === "1") setCollapsed(true);
+    else if (saved === "0") setCollapsed(false);
+  }, []);
+
+  // Mirror state to <html data-dock> so CSS can size main's right padding.
+  useEffect(() => {
+    if (hidden) {
+      document.documentElement.dataset.dock = "none";
+      return;
+    }
+    document.documentElement.dataset.dock = collapsed ? "rail" : "full";
+    try { localStorage.setItem(STORAGE_KEY, collapsed ? "1" : "0"); } catch {}
+  }, [collapsed, hidden]);
 
   const load = async () => {
     const r = await fetch(`/api/observations?weekday=${todayWeekday}`);
@@ -49,48 +65,66 @@ export function ObservationsDock() {
   useEffect(() => {
     if (hidden) return;
     load();
-    // Refresh whenever we return to a page (pathname change)
   }, [hidden, pathname]);
 
   if (hidden) return null;
 
   return (
-    <AnimatePresence>
-      {!collapsed ? (
-        <motion.aside
-          key="dock"
-          initial={{ x: 320, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 320, opacity: 0 }}
-          transition={{ type: "spring", damping: 28, stiffness: 240 }}
-          className="hidden lg:flex fixed top-20 right-4 bottom-4 z-30 w-72 flex-col rounded-2xl border bg-card/80 backdrop-blur-xl shadow-xl overflow-hidden"
-        >
-          {/* Header */}
-          <div className="p-4 border-b bg-gradient-to-br from-cyan-500/10 to-transparent">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <div className="size-7 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                  <Eye className="size-3.5 text-cyan-400" />
-                </div>
-                <span className="text-sm font-semibold">{weekdayName}s</span>
-              </div>
-              <button
-                onClick={() => setCollapsed(true)}
-                className="size-6 rounded hover:bg-muted transition text-muted-foreground hover:text-foreground"
-                aria-label="Collapse dock"
-                title="Collapse"
-              >
-                <ChevronRight className="size-3.5 mx-auto" />
-              </button>
+    <aside
+      aria-label="Observations dock"
+      className={cn(
+        "hidden lg:flex fixed top-4 right-0 bottom-4 z-30 flex-col border-l bg-card/85 backdrop-blur-xl",
+        "transition-[width] duration-200 ease-out overflow-hidden",
+        collapsed ? "w-14" : "w-72 rounded-l-2xl border shadow-xl border-r-0"
+      )}
+    >
+      {/* Header: weekday label + collapse toggle */}
+      <div className={cn(
+        "flex items-center gap-2 border-b shrink-0",
+        collapsed ? "h-16 px-0 justify-center" : "h-16 px-4 bg-gradient-to-br from-cyan-500/10 to-transparent"
+      )}>
+        {collapsed ? (
+          <button
+            onClick={() => setCollapsed(false)}
+            className="size-10 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 flex items-center justify-center text-cyan-400 transition relative"
+            aria-label="Expand dock"
+            title={`${weekdayName}s observations (${items.length})`}
+          >
+            <Eye className="size-4" />
+            {items.length > 0 && (
+              <span className="absolute -top-1 -right-1 size-4 rounded-full bg-cyan-500 text-[9px] font-bold text-background flex items-center justify-center">
+                {items.length > 9 ? "9+" : items.length}
+              </span>
+            )}
+          </button>
+        ) : (
+          <>
+            <div className="size-8 rounded-lg bg-cyan-500/20 flex items-center justify-center shrink-0">
+              <Eye className="size-4 text-cyan-400" />
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              {items.length === 0
-                ? "Nothing noted on this weekday yet"
-                : `${items.length} observation${items.length === 1 ? "" : "s"} across all ${weekdayName}s`}
-            </p>
-          </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">{weekdayName}s</p>
+              <p className="text-[11px] text-muted-foreground truncate">
+                {items.length === 0
+                  ? "Nothing noted yet"
+                  : `${items.length} observation${items.length === 1 ? "" : "s"}`}
+              </p>
+            </div>
+            <button
+              onClick={() => setCollapsed(true)}
+              className="size-8 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition inline-flex items-center justify-center"
+              aria-label="Collapse dock"
+              title="Collapse"
+            >
+              <ChevronsRight className="size-4" />
+            </button>
+          </>
+        )}
+      </div>
 
-          {/* Quick add */}
+      {/* Body */}
+      {!collapsed ? (
+        <>
           <Link
             href="/observations"
             className="mx-4 mt-3 flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/15 text-primary text-xs transition"
@@ -98,7 +132,6 @@ export function ObservationsDock() {
             <Plus className="size-3" /> New observation
           </Link>
 
-          {/* Feed */}
           <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-2">
             {items.length === 0 ? (
               <div className="text-center py-10 text-xs text-muted-foreground">
@@ -140,24 +173,27 @@ export function ObservationsDock() {
               })
             )}
           </div>
-        </motion.aside>
+        </>
       ) : (
-        <motion.button
-          key="tab"
-          initial={{ x: 40, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 40, opacity: 0 }}
-          onClick={() => setCollapsed(false)}
-          className="hidden lg:flex fixed top-1/2 -translate-y-1/2 right-0 z-30 flex-col items-center gap-2 py-4 px-2 rounded-l-xl border border-r-0 bg-card/90 backdrop-blur-xl shadow-lg hover:bg-card hover:pr-3 transition-all"
-          aria-label="Show observations"
-          title={`${weekdayName}s observations (${items.length})`}
-        >
-          <Eye className="size-4 text-cyan-400" />
-          <div className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-medium tracking-wide text-muted-foreground">
-            {WEEKDAYS_SHORT[todayWeekday]}s · {items.length}
-          </div>
-        </motion.button>
+        // Collapsed rail: tiny new-observation + expand at bottom
+        <div className="flex-1 flex flex-col items-center justify-end gap-2 pb-2 pt-2">
+          <Link
+            href="/observations"
+            className="size-10 rounded-lg border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/15 text-primary transition inline-flex items-center justify-center"
+            title="New observation"
+          >
+            <Plus className="size-4" />
+          </Link>
+          <button
+            onClick={() => setCollapsed(false)}
+            className="size-8 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition inline-flex items-center justify-center"
+            aria-label="Expand dock"
+            title="Expand"
+          >
+            <ChevronsLeft className="size-4" />
+          </button>
+        </div>
       )}
-    </AnimatePresence>
+    </aside>
   );
 }

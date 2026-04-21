@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BarChart3, BookOpen, Calendar, Code2, Eye, Home, LineChart, ListChecks, Menu,
+  BarChart3, BookOpen, Calendar, ChevronsLeft, ChevronsRight, Code2, Eye, Home, LineChart, ListChecks, Menu,
   Search, Shield, Skull, Sparkles, Target, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,30 +29,46 @@ const secondary = [
 
 const allLinks = [...primary, ...secondary];
 
+const STORAGE_KEY = "tradepad.sidebar.collapsed";
+
 export function Nav() {
   const path = usePathname();
-  const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  // Default true = matches the inline pre-hydration script in layout.tsx ("rail" unless user opted to expand).
+  // The effect below reconciles with persisted preference after mount.
+  const [collapsed, setCollapsed] = useState(true);
+
   const isActive = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
 
-  // Close on route change
-  useEffect(() => { setOpen(false); }, [path]);
-
-  // Close on outside click (but drawer does NOT block interaction)
+  // Hydrate collapsed state from localStorage and mirror to <html data-sidebar>
   useEffect(() => {
-    if (!open) return;
+    const saved = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
+    if (saved === "0") setCollapsed(false);
+    else if (saved === "1") setCollapsed(true);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.sidebar = collapsed ? "rail" : "full";
+    try { localStorage.setItem(STORAGE_KEY, collapsed ? "1" : "0"); } catch {}
+  }, [collapsed]);
+
+  // Close mobile drawer on route change
+  useEffect(() => { setMobileOpen(false); }, [path]);
+
+  // Outside click closes mobile drawer (desktop sidebar is not dismissible by outside click)
+  useEffect(() => {
+    if (!mobileOpen) return;
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (target.closest("[data-drawer-root]") || target.closest("[data-drawer-trigger]")) return;
-      setOpen(false);
+      setMobileOpen(false);
     };
-    // delay listener so the opening click doesn't immediately close it
     const t = setTimeout(() => document.addEventListener("mousedown", onClick), 50);
     return () => { clearTimeout(t); document.removeEventListener("mousedown", onClick); };
-  }, [open]);
+  }, [mobileOpen]);
 
-  // ESC closes
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
@@ -61,17 +77,17 @@ export function Nav() {
 
   return (
     <>
-      {/* Top bar — minimal: hamburger + breadcrumb + quick add + theme */}
-      <header className="sticky top-0 z-40 glass border-b">
+      {/* Top bar — only shown below lg (mobile / tablet) */}
+      <header className="sticky top-0 z-40 glass border-b lg:hidden">
         <div className="container max-w-7xl flex h-16 items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
               data-drawer-trigger
-              onClick={() => setOpen((o) => !o)}
+              onClick={() => setMobileOpen((o) => !o)}
               className="size-10 inline-flex items-center justify-center rounded-lg border bg-background/50 hover:bg-muted transition-all hover:scale-105 active:scale-95"
-              aria-label={open ? "Close menu" : "Open menu"}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
             >
-              {open ? <X className="size-5" /> : <Menu className="size-5" />}
+              {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
             <Link href="/" className="flex items-center gap-2 font-bold text-lg">
               <div className="size-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center glow-primary">
@@ -101,9 +117,95 @@ export function Nav() {
         </div>
       </header>
 
-      {/* Drawer — non-blocking. No backdrop. Rest of the app stays interactive. */}
+      {/* Desktop persistent sidebar (lg+) — always visible, collapsible to rail */}
+      <aside
+        aria-label="Primary navigation"
+        className={cn(
+          "hidden lg:flex fixed inset-y-0 left-0 z-40 flex-col border-r bg-card/80 backdrop-blur-xl",
+          "transition-[width] duration-200 ease-out overflow-hidden",
+          collapsed ? "w-14" : "w-64"
+        )}
+      >
+        {/* Logo + collapse toggle */}
+        <div className="flex items-center gap-2 h-16 px-3 border-b shrink-0">
+          <Link href="/" className="flex items-center gap-2 font-bold min-w-0" title="Tradepad">
+            <div className="size-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center glow-primary shrink-0">
+              <Sparkles className="size-4 text-primary-foreground" />
+            </div>
+            {!collapsed && (
+              <span className="bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent truncate">Tradepad</span>
+            )}
+          </Link>
+          {!collapsed && (
+            <button
+              onClick={() => setCollapsed(true)}
+              className="ml-auto size-8 inline-flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition"
+              aria-label="Collapse sidebar"
+              title="Collapse"
+            >
+              <ChevronsLeft className="size-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Nav lists */}
+        <nav className="flex-1 overflow-y-auto scrollbar-thin p-2 space-y-4">
+          <section className="space-y-1">
+            {!collapsed && (
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground px-3 pt-2 pb-1">Journal</p>
+            )}
+            {primary.map((link) => (
+              <SidebarLink key={link.href} link={link} active={isActive(link.href)} collapsed={collapsed} />
+            ))}
+          </section>
+          <section className="space-y-1">
+            {!collapsed && (
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground px-3 pt-2 pb-1">Knowledge &amp; Tools</p>
+            )}
+            {secondary.map((link) => (
+              <SidebarLink key={link.href} link={link} active={isActive(link.href)} collapsed={collapsed} />
+            ))}
+          </section>
+        </nav>
+
+        {/* Footer: quick-add, theme, expand toggle (when collapsed) */}
+        <div className="border-t p-2 space-y-1 shrink-0">
+          <button
+            onClick={() => document.dispatchEvent(new CustomEvent("tradepad:open-palette"))}
+            className={cn(
+              "w-full flex items-center rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition",
+              collapsed ? "size-10 justify-center" : "gap-3 p-2.5"
+            )}
+            title="Quick add / navigate (Ctrl+K)"
+          >
+            <Search className="size-4 shrink-0" />
+            {!collapsed && (
+              <>
+                <span className="text-sm font-medium">Quick add…</span>
+                <kbd className="ml-auto text-[10px] opacity-70">Ctrl+K</kbd>
+              </>
+            )}
+          </button>
+          <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between px-1")}>
+            <ThemeToggle />
+            {collapsed && (
+              <button
+                onClick={() => setCollapsed(false)}
+                className="size-8 inline-flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition"
+                aria-label="Expand sidebar"
+                title="Expand"
+                style={{ marginLeft: 4 }}
+              >
+                <ChevronsRight className="size-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile drawer */}
       <AnimatePresence>
-        {open && (
+        {mobileOpen && (
           <motion.aside
             data-drawer-root
             key="drawer"
@@ -111,43 +213,43 @@ export function Nav() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "-105%", opacity: 0 }}
             transition={{ type: "spring", damping: 28, stiffness: 260 }}
-            className="fixed top-20 left-4 z-40 h-[calc(100vh-6rem)] w-[88vw] max-w-xs bg-card/95 backdrop-blur-xl border border-border/60 shadow-2xl rounded-2xl overflow-y-auto scrollbar-thin"
+            className="lg:hidden fixed top-20 left-4 z-40 h-[calc(100vh-6rem)] w-[88vw] max-w-xs bg-card/95 backdrop-blur-xl border border-border/60 shadow-2xl rounded-2xl overflow-y-auto scrollbar-thin"
           >
-              <div className="p-5 space-y-6">
-                <section className="space-y-2">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground px-2">Journal</p>
-                  <div className="space-y-1">
-                    {primary.map((link, i) => (
-                      <DrawerLink key={link.href} link={link} active={isActive(link.href)} index={i} onNavigate={() => setOpen(false)} />
-                    ))}
-                  </div>
-                </section>
+            <div className="p-5 space-y-6">
+              <section className="space-y-2">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground px-2">Journal</p>
+                <div className="space-y-1">
+                  {primary.map((link, i) => (
+                    <DrawerLink key={link.href} link={link} active={isActive(link.href)} index={i} onNavigate={() => setMobileOpen(false)} />
+                  ))}
+                </div>
+              </section>
 
-                <section className="space-y-2">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground px-2">Knowledge & Tools</p>
-                  <div className="space-y-1">
-                    {secondary.map((link, i) => (
-                      <DrawerLink key={link.href} link={link} active={isActive(link.href)} index={primary.length + i} onNavigate={() => setOpen(false)} />
-                    ))}
-                  </div>
-                </section>
+              <section className="space-y-2">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground px-2">Knowledge &amp; Tools</p>
+                <div className="space-y-1">
+                  {secondary.map((link, i) => (
+                    <DrawerLink key={link.href} link={link} active={isActive(link.href)} index={primary.length + i} onNavigate={() => setMobileOpen(false)} />
+                  ))}
+                </div>
+              </section>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 }}
-                  className="pt-4 border-t border-border/40"
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                className="pt-4 border-t border-border/40"
+              >
+                <button
+                  onClick={() => { setMobileOpen(false); document.dispatchEvent(new CustomEvent("tradepad:open-palette")); }}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition"
                 >
-                  <button
-                    onClick={() => { setOpen(false); document.dispatchEvent(new CustomEvent("tradepad:open-palette")); }}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition"
-                  >
-                    <Search className="size-4" />
-                    <span className="text-sm font-medium">Quick add…</span>
-                    <kbd className="ml-auto text-[10px] opacity-70">Ctrl+K</kbd>
-                  </button>
-                </motion.div>
-              </div>
+                  <Search className="size-4" />
+                  <span className="text-sm font-medium">Quick add…</span>
+                  <kbd className="ml-auto text-[10px] opacity-70">Ctrl+K</kbd>
+                </button>
+              </motion.div>
+            </div>
           </motion.aside>
         )}
       </AnimatePresence>
@@ -156,6 +258,34 @@ export function Nav() {
 }
 
 type LinkItem = { href: string; label: string; icon: any; tint: string };
+
+function SidebarLink({ link, active, collapsed }: { link: LinkItem; active: boolean; collapsed: boolean }) {
+  const Icon = link.icon;
+  return (
+    <Link
+      href={link.href}
+      title={collapsed ? link.label : undefined}
+      className={cn(
+        "group flex items-center rounded-lg transition-all relative",
+        collapsed ? "justify-center size-10 mx-auto" : "gap-3 p-2.5",
+        active
+          ? "bg-primary/10 text-primary"
+          : "hover:bg-muted text-foreground/80 hover:text-foreground"
+      )}
+    >
+      <div className={cn(
+        "size-8 rounded-md flex items-center justify-center shrink-0 transition-all",
+        active
+          ? `bg-gradient-to-br ${link.tint} text-white shadow`
+          : "bg-muted/60 group-hover:bg-background"
+      )}>
+        <Icon className="size-4" />
+      </div>
+      {!collapsed && <span className="text-sm font-medium truncate">{link.label}</span>}
+      {!collapsed && active && <span className="ml-auto size-1.5 rounded-full bg-primary" />}
+    </Link>
+  );
+}
 
 function DrawerLink({ link, active, index, onNavigate }: { link: LinkItem; active: boolean; index: number; onNavigate: () => void }) {
   const Icon = link.icon;
@@ -175,7 +305,6 @@ function DrawerLink({ link, active, index, onNavigate }: { link: LinkItem; activ
             : "hover:bg-muted text-foreground/80 hover:text-foreground border border-transparent"
         )}
       >
-        {/* gradient icon tile */}
         <div className={cn(
           "size-9 rounded-lg flex items-center justify-center shrink-0 transition-all",
           active

@@ -84,8 +84,17 @@ export function TradeEditor({ trade, screenshots = [] }: { trade?: Trade; screen
         const fd = new FormData();
         fd.append("file", file);
         fd.append("tradeId", String(trade.id));
-        const res = await fetch("/api/screenshots", { method: "POST", body: fd });
-        if (res.ok) toast.success(`Uploaded ${file.name}`);
+        try {
+          const res = await fetch("/api/screenshots", { method: "POST", body: fd });
+          if (res.ok) {
+            toast.success(`Uploaded ${file.name}`);
+          } else {
+            const body = await res.text();
+            toast.error(`Upload failed (${res.status}): ${body.slice(0, 200)}`);
+          }
+        } catch (err: any) {
+          toast.error(`Upload error: ${err?.message ?? err}`);
+        }
       }
       router.refresh();
     },

@@ -58,6 +58,14 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
   }
+  /* Sidebar width var, driven by html[data-sidebar] set by Nav.
+     Used by main padding-left on lg+. Default rail width so the
+     pre-hydration script has a safe fallback. */
+  html { --sidebar-w: 0px; }
+  @media (min-width: 1024px) {
+    html[data-sidebar="rail"] { --sidebar-w: 3.5rem; }
+    html[data-sidebar="full"] { --sidebar-w: 16rem; }
+  }
 }
 
 @layer components {
